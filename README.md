@@ -1,6 +1,8 @@
 # Compass AI M25.2 — Widget Studio
 
-M25.2 keeps the five-tab Compass structure:
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Frmiller1188-design%2FCompassOS)
+
+Compass AI is a condensed two-person communications OS prototype built around five primary destinations:
 
 - Home
 - Messages
@@ -8,9 +10,17 @@ M25.2 keeps the five-tab Compass structure:
 - Us
 - Search
 
-It turns each major pane into a configurable widget.
+The repository contains the finalized M25.2 interactive release and a root-level `render.yaml` Blueprint for deployment as a free Render static site.
+
+## Deploy on Render
+
+1. Click **Deploy to Render** above.
+2. Sign in to Render and review the `compass-os` static site Blueprint.
+3. Approve the Blueprint deployment.
+4. Render will publish the site and automatically redeploy future commits to `main`.
 
 ## Widget sizing
+
 - Small
 - Medium
 - Large
@@ -22,6 +32,7 @@ It turns each major pane into a configurable widget.
 - Adjustable internal padding
 
 ## Layout
+
 - Click a widget to edit it
 - Drag widgets to rearrange them
 - Move earlier or later
@@ -30,6 +41,7 @@ It turns each major pane into a configurable widget.
 - Reset one screen without resetting the others
 
 ## Text and typography
+
 - Edit widget title
 - Edit first supporting text
 - Direct on-widget text editing
@@ -47,6 +59,7 @@ It turns each major pane into a configurable widget.
 - Independent title and body colors
 
 ## Panel styling
+
 - Per-widget background color
 - Background-only transparency
 - Corner radius
@@ -55,20 +68,29 @@ It turns each major pane into a configurable widget.
 - None, soft, standard, strong, or glow shadow
 
 ## Widget actions
+
 - Duplicate
-- Minimize/expand
+- Minimize or expand
 - Hide
 - Restore
 - Reset
 - Delete copied widgets
 
 ## Transparency correction
+
 Transparency no longer changes the opacity of the text, buttons, icons, or the entire element.
 
-Each panel now uses:
-1. an isolated page-background layer that masks the interface underneath; and
-2. a separate translucent surface layer.
+Each panel uses:
 
-This means reducing transparency reveals the app background or wallpaper—not the text and cards underneath the panel.
+1. An isolated page-background layer that masks the interface underneath.
+2. A separate translucent surface layer.
+3. A fully opaque content layer for text, buttons, and icons.
 
-All settings persist locally in the standalone preview.
+Reducing transparency reveals the app background or wallpaper—not the text and cards underneath the panel.
+
+## Prototype boundaries
+
+- No live Gmail or Microsoft OAuth is enabled yet.
+- No unrestricted native iMessage or carrier call-history access is claimed.
+- Money movement is simulated and requires a production payment provider before real transfers.
+- Files and preferences persist locally in the browser preview.
