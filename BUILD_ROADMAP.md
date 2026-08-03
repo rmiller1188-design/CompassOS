@@ -13,7 +13,7 @@
 - [x] Dependency-free unit tests
 
 ## P1 — Provider OAuth routes — IN PROGRESS
-### P1A — Provider protocol runtime
+### P1A — Provider protocol runtime — REVIEWABLE
 - [x] Google and Microsoft authorization endpoint configuration
 - [x] PKCE authorization URL generation
 - [x] Server-side authorization-code exchange
@@ -24,14 +24,16 @@
 - [x] Dependency-free provider mock tests
 - [x] GitHub Actions validation workflow
 
-### P1B — Application route integration
-- [ ] Authenticated authorization-start handler
-- [ ] Single-use OAuth state consumption transaction
-- [ ] Callback handler with encrypted PKCE verifier recovery
-- [ ] Connected-account upsert and encrypted token persistence
-- [ ] Refresh locking and reauthorization state transitions
-- [ ] Disconnect endpoint and audit events
+### P1B — Application route integration — REVIEWABLE
+- [x] Authenticated authorization-start handler
+- [x] Single-use OAuth state consumption contract
+- [x] Callback handler with encrypted PKCE verifier recovery
+- [x] Connected-account upsert and encrypted token persistence contract
+- [x] Refresh locking and reauthorization state transitions
+- [x] Disconnect endpoint and audit events
+- [x] Replay, token-at-rest, refresh, and invalid-grant tests
 - [ ] Live provider credential validation
+- [ ] Concrete Supabase adapter integration test
 
 ## P2 — Incremental communication sync
 - [ ] Gmail full bootstrap plus history sync
