@@ -1,0 +1,51 @@
+name: Expand M26 Source
+
+on:
+  push:
+    branches: [m26-connected-accounts]
+    paths:
+      - 'm26-payload-*.txt'
+      - '.github/workflows/bootstrap-m26.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  expand:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconstruct source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat m26-payload-*.txt > /tmp/m26-source.b64
+          base64 --decode /tmp/m26-source.b64 > /tmp/m26-source.tar.gz
+          gzip -t /tmp/m26-source.tar.gz
+      - name: Replace static prototype with M26 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name '.git' \
+            ! -name '.github' \
+            ! -name 'm26-payload-*.txt' \
+            -exec rm -rf {} +
+          tar -xzf /tmp/m26-source.tar.gz -C .
+          rm -f m26-payload-*.txt
+      - name: Commit expanded project
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No source changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Expand M26 connected accounts source'
+          git push origin HEAD:m26-connected-accounts
