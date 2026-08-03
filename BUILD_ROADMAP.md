@@ -12,13 +12,26 @@
 - [x] Explicit outbound approval state machine
 - [x] Dependency-free unit tests
 
-## P1 — Provider OAuth routes
-- [ ] Google authorization and callback handlers
-- [ ] Microsoft authorization and callback handlers
-- [ ] Server-side code exchange
-- [ ] Refresh-token rotation and refresh locking
-- [ ] Revocation and reauthorization flows
-- [ ] Integration tests with provider sandbox/mocks
+## P1 — Provider OAuth routes — IN PROGRESS
+### P1A — Provider protocol runtime
+- [x] Google and Microsoft authorization endpoint configuration
+- [x] PKCE authorization URL generation
+- [x] Server-side authorization-code exchange
+- [x] Refresh-token rotation preservation
+- [x] Provider identity normalization
+- [x] Google revocation and Microsoft local-disconnect semantics
+- [x] Typed retryable/non-retryable provider errors
+- [x] Dependency-free provider mock tests
+- [x] GitHub Actions validation workflow
+
+### P1B — Application route integration
+- [ ] Authenticated authorization-start handler
+- [ ] Single-use OAuth state consumption transaction
+- [ ] Callback handler with encrypted PKCE verifier recovery
+- [ ] Connected-account upsert and encrypted token persistence
+- [ ] Refresh locking and reauthorization state transitions
+- [ ] Disconnect endpoint and audit events
+- [ ] Live provider credential validation
 
 ## P2 — Incremental communication sync
 - [ ] Gmail full bootstrap plus history sync
