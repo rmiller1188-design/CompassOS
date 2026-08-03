@@ -1,0 +1,34 @@
+name: M26 CI
+
+on:
+  push:
+    branches: [m26-connected-accounts]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
+          SUPABASE_SERVICE_ROLE_KEY: example-service-role
+          TOKEN_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          OAUTH_STATE_SECRET: example-oauth-secret-for-build-only
+          GOOGLE_CLIENT_ID: example
+          GOOGLE_CLIENT_SECRET: example
+          MICROSOFT_CLIENT_ID: example
+          MICROSOFT_CLIENT_SECRET: example
+          MICROSOFT_TENANT: common
+          OPENAI_API_KEY: example
+          OPENAI_MODEL: gpt-5
