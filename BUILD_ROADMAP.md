@@ -24,14 +24,15 @@
 - [x] Dependency-free provider mock tests
 - [x] GitHub Actions validation workflow
 
-### P1B — Application route integration — REVIEWABLE
+### P1B — Application route integration — VALIDATION PENDING
 - [x] Authenticated authorization-start handler
 - [x] Single-use OAuth state consumption contract
 - [x] Callback handler with encrypted PKCE verifier recovery
 - [x] Connected-account upsert and encrypted token persistence contract
 - [x] Refresh locking and reauthorization state transitions
 - [x] Disconnect endpoint and audit events
-- [x] Replay, token-at-rest, refresh, and invalid-grant tests
+- [x] Replay, token-at-rest, refresh, and invalid-grant tests authored
+- [ ] GitHub Actions or equivalent complete validation run
 - [ ] Live provider credential validation
 - [ ] Concrete Supabase adapter integration test
 
