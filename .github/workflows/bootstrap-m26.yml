@@ -1,65 +1,48 @@
-name: Expand M26 Source
+name: Import M26 Source ZIP
 
 on:
   workflow_dispatch:
-  push:
-    branches: [m26-connected-accounts]
-    paths:
-      - 'm26-payload-*.txt'
-      - '.github/workflows/bootstrap-m26.yml'
 
 permissions:
   contents: write
 
 jobs:
-  expand:
-    if: github.actor != 'github-actions[bot]'
+  import:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Reconstruct source archive
+      - name: Verify source ZIP
         shell: bash
         run: |
           set -euo pipefail
-          STAGING_COMMIT='ec5014963dae83fc74334b8628300a413baaa16f'
-          ARCHIVE='/tmp/m26-source.tar.gz'
-          : > "$ARCHIVE"
+          test -f CompassOS_M26_Connected_Accounts.zip
+          unzip -t CompassOS_M26_Connected_Accounts.zip
 
-          mapfile -t PARTS < <(
-            git ls-tree -r --name-only "$STAGING_COMMIT" |
-              grep -E '^m26-payload-[0-9]{2}\.txt$' |
-              sort
-          )
-
-          if [ "${#PARTS[@]}" -ne 13 ]; then
-            echo "Expected 13 payload chunks; found ${#PARTS[@]}."
-            exit 1
-          fi
-
-          for part in "${PARTS[@]}"; do
-            echo "Decoding $part"
-            git show "${STAGING_COMMIT}:${part}" |
-              tr -d '\r\n' |
-              base64 --decode >> "$ARCHIVE"
-          done
-
-          gzip -t "$ARCHIVE"
-          echo "M26 source archive reconstructed and verified."
-
-      - name: Replace static prototype with M26 source
+      - name: Expand M26 source
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf /tmp/compass-m26
+          mkdir -p /tmp/compass-m26
+          unzip -q CompassOS_M26_Connected_Accounts.zip -d /tmp/compass-m26
+          SOURCE=/tmp/compass-m26/CompassOS_M26
+          test -f "$SOURCE/package.json"
+          test -d "$SOURCE/src"
+          test -d "$SOURCE/supabase"
+
           find . -mindepth 1 -maxdepth 1 \
             ! -name '.git' \
             ! -name '.github' \
-            ! -name 'm26-payload-*.txt' \
             -exec rm -rf {} +
-          tar -xzf /tmp/m26-source.tar.gz -C .
-          rm -f m26-payload-*.txt
+
+          mkdir -p .github
+          rsync -a --delete "$SOURCE/.github/" .github/
+          rsync -a --exclude '.github' "$SOURCE/" ./
+
+          rm -f m26-payload-*.txt m26-direct-*.txt CompassOS_M26_Connected_Accounts.zip
 
       - name: Commit expanded project
         shell: bash
@@ -72,5 +55,5 @@ jobs:
             echo 'No source changes to commit.'
             exit 0
           fi
-          git commit -m 'Expand M26 connected accounts source'
+          git commit -m 'Import M26 connected accounts source'
           git push origin HEAD:m26-connected-accounts
