@@ -39,7 +39,7 @@ export class OAuthApplicationService {
     }
     const credentials = required(this.providerCredentials[stored.provider], `credentials for ${stored.provider}`);
     const { verifier } = decryptTokenPayload(stored.verifierEnvelope, this.encryptionKey);
-    const tokenSet = await exchangeAuthorizationCode({ provider: stored.provider, clientId: credentials.clientId, clientSecret: credentials.clientSecret, redirectUri: stored.redirectUri, code, codeVerifier: verifier, fetchImpl: this.fetchImpl });
+    const tokenSet = await exchangeAuthorizationCode({ provider: stored.provider, clientId: credentials.clientId, clientSecret: credentials.clientSecret, redirectUri: stored.redirectUri, code, codeVerifier: verifier, fetchImpl: this.fetchImpl, now: this.now() });
     const identity = await fetchProviderIdentity({ provider: stored.provider, accessToken: tokenSet.accessToken, fetchImpl: this.fetchImpl });
     const tokenEnvelope = encryptTokenPayload(tokenSet, this.encryptionKey, { purpose: 'provider-token', userId: stored.userId, provider: stored.provider, providerSubject: identity.providerSubject });
     const account = await this.accountStore.upsert({ userId: stored.userId, provider: stored.provider, providerSubject: identity.providerSubject, email: identity.email, displayName: identity.displayName, status: 'connected', scopes: tokenSet.scope, expiresAt: tokenSet.expiresAt, tokenEnvelope });
@@ -59,7 +59,7 @@ export class OAuthApplicationService {
       }
       const credentials = required(this.providerCredentials[account.provider], `credentials for ${account.provider}`);
       try {
-        tokenSet = await refreshAccessToken({ provider: account.provider, clientId: credentials.clientId, clientSecret: credentials.clientSecret, refreshToken: tokenSet.refreshToken, scopes: account.scopes, fetchImpl: this.fetchImpl });
+        tokenSet = await refreshAccessToken({ provider: account.provider, clientId: credentials.clientId, clientSecret: credentials.clientSecret, refreshToken: tokenSet.refreshToken, scopes: account.scopes, fetchImpl: this.fetchImpl, now: this.now() });
       } catch (error) {
         if (!error.retryable) await this.accountStore.updateStatus(accountId, 'reauthorization_required');
         throw error;
