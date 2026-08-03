@@ -19,13 +19,36 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Reconstruct source archive
         shell: bash
         run: |
           set -euo pipefail
-          cat m26-payload-*.txt > /tmp/m26-source.b64
-          base64 --decode /tmp/m26-source.b64 > /tmp/m26-source.tar.gz
-          gzip -t /tmp/m26-source.tar.gz
+          STAGING_COMMIT='ec5014963dae83fc74334b8628300a413baaa16f'
+          ARCHIVE='/tmp/m26-source.tar.gz'
+          : > "$ARCHIVE"
+
+          mapfile -t PARTS < <(
+            git ls-tree -r --name-only "$STAGING_COMMIT" |
+              grep -E '^m26-payload-[0-9]{2}\.txt$' |
+              sort
+          )
+
+          if [ "${#PARTS[@]}" -ne 13 ]; then
+            echo "Expected 13 payload chunks; found ${#PARTS[@]}."
+            exit 1
+          fi
+
+          for part in "${PARTS[@]}"; do
+            echo "Decoding $part"
+            git show "${STAGING_COMMIT}:${part}" |
+              tr -d '\r\n' |
+              base64 --decode >> "$ARCHIVE"
+          done
+
+          gzip -t "$ARCHIVE"
+          echo "M26 source archive reconstructed and verified."
+
       - name: Replace static prototype with M26 source
         shell: bash
         run: |
@@ -37,6 +60,7 @@ jobs:
             -exec rm -rf {} +
           tar -xzf /tmp/m26-source.tar.gz -C .
           rm -f m26-payload-*.txt
+
       - name: Commit expanded project
         shell: bash
         run: |
