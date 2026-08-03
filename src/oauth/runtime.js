@@ -63,7 +63,7 @@ export function buildAuthorizationUrl({ provider, clientId, redirectUri, scopes,
   return url.toString();
 }
 
-export async function exchangeAuthorizationCode({ provider, clientId, clientSecret, redirectUri, code, codeVerifier, fetchImpl = fetch }) {
+export async function exchangeAuthorizationCode({ provider, clientId, clientSecret, redirectUri, code, codeVerifier, fetchImpl = fetch, now = Date.now() }) {
   const config = getProviderConfig(provider);
   const response = await fetchImpl(config.tokenEndpoint, {
     method: 'POST',
@@ -72,10 +72,10 @@ export async function exchangeAuthorizationCode({ provider, clientId, clientSecr
   });
   const payload = await parseResponse(response);
   if (!response.ok) throw classifyProviderError(provider, response, payload);
-  return normalizeTokenSet(provider, payload);
+  return normalizeTokenSet(provider, payload, { now });
 }
 
-export async function refreshAccessToken({ provider, clientId, clientSecret, refreshToken, scopes, fetchImpl = fetch }) {
+export async function refreshAccessToken({ provider, clientId, clientSecret, refreshToken, scopes, fetchImpl = fetch, now = Date.now() }) {
   const config = getProviderConfig(provider);
   const response = await fetchImpl(config.tokenEndpoint, {
     method: 'POST',
@@ -84,7 +84,7 @@ export async function refreshAccessToken({ provider, clientId, clientSecret, ref
   });
   const payload = await parseResponse(response);
   if (!response.ok) throw classifyProviderError(provider, response, payload);
-  return normalizeTokenSet(provider, payload, { fallbackRefreshToken: refreshToken });
+  return normalizeTokenSet(provider, payload, { fallbackRefreshToken: refreshToken, now });
 }
 
 export async function fetchProviderIdentity({ provider, accessToken, fetchImpl = fetch }) {
