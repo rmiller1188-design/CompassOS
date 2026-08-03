@@ -1,6 +1,7 @@
 name: Expand M26 Source
 
 on:
+  workflow_dispatch:
   push:
     branches: [m26-connected-accounts]
     paths:
