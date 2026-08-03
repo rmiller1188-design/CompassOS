@@ -2,7 +2,6 @@ services:
   - type: web
     name: compass-os
     runtime: static
-    plan: free
     buildCommand: echo "Compass AI is a prebuilt static release"
     staticPublishPath: .
     autoDeployTrigger: commit
