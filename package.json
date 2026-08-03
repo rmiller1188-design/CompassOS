@@ -1,11 +1,11 @@
 {
   "name": "compass-os-core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22" },
   "scripts": {
     "test": "node --test",
-    "validate": "node --check src/security/oauth.js && node --check src/security/token-envelope.js && node --check src/sync/pagination.js && node --check src/actions/approval.js && node --check src/domain/normalized.js && node --check src/oauth/provider-config.js && node --check src/oauth/runtime.js && node --check src/oauth/application.js && node --check src/oauth/http-handlers.js && node --test"
+    "validate": "node --check src/security/oauth.js && node --check src/security/token-envelope.js && node --check src/sync/pagination.js && node --check src/sync/mail-incremental.js && node --check src/actions/approval.js && node --check src/domain/normalized.js && node --check src/oauth/provider-config.js && node --check src/oauth/runtime.js && node --check src/oauth/application.js && node --check src/oauth/http-handlers.js && node --test"
   }
 }
