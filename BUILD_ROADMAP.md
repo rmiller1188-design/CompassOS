@@ -42,7 +42,7 @@
 - [ ] Live Gmail mailbox validation
 - [ ] Live Microsoft 365 mailbox validation
 
-### P2C — Supabase mail persistence — VALIDATION PENDING
+### P2C — Supabase mail persistence — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Account-bound Supabase store adapter
 - [x] Message and derived thread upserts
 - [x] Provider-specific cursor persistence
@@ -51,7 +51,7 @@
 - [x] Reauthorization account transition
 - [x] Owner-read RLS and service-role-only ingestion boundary
 - [x] Cross-account write rejection tests
-- [ ] GitHub Actions validation on branch head
+- [x] GitHub Actions validation on branch head
 - [ ] Live Supabase migration and integration validation
 - [ ] Worker leasing and dead-letter promotion execution
 
