@@ -31,7 +31,7 @@ function microsoftTokenSet(json: Record<string, unknown>, retainedRefreshToken: 
   };
 }
 
-export function microsoftAuthorizationUrl(state: string): string {
+export function microsoftAuthorizationUrl(state: string, codeChallenge: string): string {
   const url = new URL(authorizeEndpoint());
   url.searchParams.set("client_id", env.microsoftClientId());
   url.searchParams.set("redirect_uri", `${env.appUrl()}/api/oauth/microsoft/callback`);
@@ -39,15 +39,18 @@ export function microsoftAuthorizationUrl(state: string): string {
   url.searchParams.set("response_mode", "query");
   url.searchParams.set("scope", MICROSOFT_READ_SCOPES.join(" "));
   url.searchParams.set("state", state);
+  url.searchParams.set("code_challenge", codeChallenge);
+  url.searchParams.set("code_challenge_method", "S256");
   return url.toString();
 }
 
-export async function exchangeMicrosoftCode(code: string): Promise<ProviderTokenSet> {
+export async function exchangeMicrosoftCode(code: string, codeVerifier: string): Promise<ProviderTokenSet> {
   const response = await fetch(tokenEndpoint(), {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
+      code_verifier: codeVerifier,
       client_id: env.microsoftClientId(),
       client_secret: env.microsoftClientSecret(),
       redirect_uri: `${env.appUrl()}/api/oauth/microsoft/callback`,
