@@ -5,9 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -p ${PORT:-3000}",
+    "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "secrets": "node scripts/generate-secrets.mjs",
+    "check:env": "node scripts/check-env.mjs",
+    "validate": "npm run check:env && npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.3",
