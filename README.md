@@ -26,6 +26,7 @@ The existing M25.2 static prototype remains on `main`. M26 is developed on `m26-
 - OpenAI Responses API private daily brief with `store: false` and strict JSON schema output
 - External action approval table for future send/write/financial operations
 - Render Node deployment Blueprint
+- One-click owner-authorized Supabase and Render provisioning workflow
 
 ## Security model
 
@@ -37,18 +38,27 @@ The existing M25.2 static prototype remains on `main`. M26 is developed on `m26-
 - Google and Microsoft connections begin read-only.
 - Send, calendar-write, and financial actions remain disabled until an explicit approval workflow is implemented.
 
+## Automated completion
+
+The default branch exposes **Actions → Finish Compass M26**. After account-owner secrets are stored directly in GitHub, the workflow:
+
+1. Creates or reuses the Supabase project.
+2. Applies migrations `001` through `006`.
+3. Configures Supabase Auth redirects.
+4. Retrieves project keys without printing them.
+5. Refuses to touch the working static Render service.
+6. Configures the separate `compass-os-m26` web service.
+7. Preserves encryption secrets across reruns.
+8. Deploys M26 and waits for `/api/health` to report `ready`.
+
+See `docs/FINISH_M26.md` for the owner-authorization handoff. Do not paste secrets into chat or commit them to the repository.
+
 ## Local setup
 
-1. Create a Supabase project.
+1. Create a Supabase project or use the automated workflow.
 2. Run all SQL files in `supabase/migrations` in numeric order.
 3. Copy `.env.example` to `.env.local`.
-4. Generate secrets:
-
-```bash
-openssl rand -base64 32   # TOKEN_ENCRYPTION_KEY
-openssl rand -hex 32      # OAUTH_STATE_SECRET
-```
-
+4. Generate secrets with `npm run secrets`.
 5. Configure Google and Microsoft OAuth using `docs/OAUTH_SETUP.md`.
 6. Install and run:
 
@@ -61,18 +71,33 @@ npm run dev
 
 ## Render deployment
 
-Create a separate Render Blueprint deployment from the M26 branch after the environment variables are configured. Do not point the existing live static service at M26 until the Supabase migrations and OAuth callbacks are ready.
+Create a separate Render deployment for `compass-os-m26` from the M26 branch. Do not point the existing live static service at M26 until the Supabase migrations and OAuth callbacks are ready.
 
-See `docs/DEPLOYMENT.md`.
+See `docs/DEPLOYMENT.md` and `docs/FINISH_M26.md`.
 
 ## iPhone companion
 
 See `ios/Compass/README.md`. The Share extension accepts only content the user explicitly selects through the iOS Share Sheet. It does not read historical iMessage conversations.
 
-## Prototype limitations still present
+## Validation
 
-- Thread detail and reply drafting UI is scaffolded but not fully implemented.
-- Provider webhooks and incremental sync tokens are not yet enabled.
-- Google/Microsoft write scopes are intentionally not requested.
-- Native iOS sign-in handoff still needs the Xcode project and universal-link flow.
-- Real financial accounts and transfers are not connected.
+The validated M26 branch passes:
+
+- six-migration ordering checks
+- npm dependency installation on Node 22
+- TypeScript typecheck
+- ESLint
+- Next.js production build
+- provisioning-script syntax validation
+
+See `M26_VALIDATION.md`.
+
+## Remaining external requirements
+
+- Supabase account authorization
+- Google OAuth application and testing users
+- Microsoft Entra application and testing users
+- Separate M26 Render service authorization
+- Two-account privacy and sharing acceptance test
+- Apple/Xcode project creation, signing, App Group, and Keychain setup
+- Google verification before broad Gmail production access, where required
