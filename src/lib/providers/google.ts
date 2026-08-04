@@ -28,7 +28,7 @@ function googleTokenSet(json: Record<string, unknown>, retainedRefreshToken: str
   };
 }
 
-export function googleAuthorizationUrl(state: string): string {
+export function googleAuthorizationUrl(state: string, codeChallenge: string): string {
   const url = new URL(GOOGLE_AUTH);
   url.searchParams.set("client_id", env.googleClientId());
   url.searchParams.set("redirect_uri", `${env.appUrl()}/api/oauth/google/callback`);
@@ -38,15 +38,18 @@ export function googleAuthorizationUrl(state: string): string {
   url.searchParams.set("prompt", "consent");
   url.searchParams.set("include_granted_scopes", "true");
   url.searchParams.set("state", state);
+  url.searchParams.set("code_challenge", codeChallenge);
+  url.searchParams.set("code_challenge_method", "S256");
   return url.toString();
 }
 
-export async function exchangeGoogleCode(code: string): Promise<ProviderTokenSet> {
+export async function exchangeGoogleCode(code: string, codeVerifier: string): Promise<ProviderTokenSet> {
   const response = await fetch(GOOGLE_TOKEN, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
+      code_verifier: codeVerifier,
       client_id: env.googleClientId(),
       client_secret: env.googleClientSecret(),
       redirect_uri: `${env.appUrl()}/api/oauth/google/callback`,
