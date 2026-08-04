@@ -17,10 +17,9 @@ export default async function UsPage() {
   const admin = createAdminClient();
   const { data: memberships } = await admin.from("workspace_members").select("role,workspaces(id,name,kind,created_by)").eq("user_id", user.id);
 
-  const shared = (memberships || []).flatMap(row => {
-    const related = row.workspaces;
-    return Array.isArray(related) ? related : related ? [related] : [];
-  }).find(workspace => workspace.kind === "shared") as SharedWorkspace | undefined;
+  const shared = (memberships || [])
+    .flatMap(row => row.workspaces)
+    .find(workspace => workspace.kind === "shared") as SharedWorkspace | undefined;
 
   if (!shared) {
     return (
