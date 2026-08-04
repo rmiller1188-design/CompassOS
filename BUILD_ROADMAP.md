@@ -11,38 +11,34 @@
 - [ ] Live Supabase adapter integration test
 
 ## P2 — Incremental communication sync
-### P2A — Provider-neutral mail sync core — REVIEWABLE
-- [x] Bootstrap/incremental orchestration, bounded pagination, terminal checkpointing, failure classification
-
-### P2B — Gmail and Microsoft mail protocol adapters — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] Gmail history synchronization and Microsoft Graph message delta synchronization
-- [ ] Live Gmail and Microsoft 365 mailbox validation
-
-### P2C — Supabase mail persistence — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] Account-bound message/thread/cursor/sync/retry persistence and owner-read RLS
-- [ ] Live Supabase migration and integration validation
-
-### P2D — Retry worker and dead-letter operations — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] Atomic retry claiming, worker leases, bounded backoff, attempt limits, and dead-letter visibility
-- [x] GitHub Actions validation on branch head
-- [ ] Live scheduled worker deployment
+- [x] Provider-neutral mail synchronization
+- [x] Gmail history and Microsoft Graph mail delta adapters
+- [x] Supabase message/thread/cursor persistence
+- [x] Retry worker leasing and dead-letter operations
+- [ ] Live mailbox and Supabase validation
 
 ## P3 — Calendar and contacts sync — IN PROGRESS
-### P3A — Google and Microsoft calendar incremental sync — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] Provider-neutral calendar synchronization orchestration
-- [x] Google Calendar bootstrap, page tokens, and sync tokens
-- [x] Microsoft calendarView delta, nextLink, and deltaLink handling
+### P3A — Calendar incremental sync — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Google Calendar sync tokens and Microsoft calendarView delta
 - [x] Normalized event mapping and terminal checkpoint guarantees
+- [x] GitHub Actions validation
+- [ ] Live calendar and Supabase event validation
+
+### P3B — Contacts incremental sync — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Provider-neutral contact synchronization orchestration
+- [x] Google People connections pagination and sync tokens
+- [x] Microsoft Graph contacts delta continuation
+- [x] Normalized contact contract including deletions
+- [x] Terminal-only checkpoint advancement and cursor-cycle protection
 - [x] Deterministic provider and orchestration tests
 - [x] GitHub Actions validation on branch head
-- [ ] Live Google and Microsoft calendar validation
-- [ ] Supabase event persistence integration
+- [ ] Supabase contact persistence and identity resolution
+- [ ] Live Google and Microsoft contacts validation
 
-### P3B — Contacts and meeting context
-- [ ] Google People incremental contacts
-- [ ] Microsoft contacts delta synchronization
-- [ ] Contact identity resolution
-- [ ] Meeting-context graph
+### P3C — Meeting context graph
+- [ ] Resolve contacts across provider identities
+- [ ] Connect contacts, messages, threads, and calendar attendees
+- [ ] Meeting preparation context boundary
 
 ## P4 — Attention and memory
 - [ ] AI triage with explainable scoring
