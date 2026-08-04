@@ -17,7 +17,7 @@
 - [x] Retry worker leasing and dead-letter operations
 - [ ] Live mailbox and Supabase validation
 
-## P3 — Calendar and contacts sync — IN PROGRESS
+## P3 — Calendar and contacts sync — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 ### P3A — Calendar incremental sync — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Google Calendar sync tokens and Microsoft calendarView delta
 - [x] Normalized event mapping and terminal checkpoint guarantees
@@ -32,14 +32,14 @@
 - [ ] Supabase contact persistence
 - [ ] Live contacts validation
 
-### P3C — Meeting context graph — VALIDATION PENDING
+### P3C — Meeting context graph — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Resolve equivalent provider contacts by normalized email
 - [x] Connect calendar attendees to contacts and recent message threads
 - [x] Exclude deleted contact tombstones
 - [x] Bound messages per attendee and preserve provenance
 - [x] Produce a compact meeting-preparation input boundary
 - [x] Deterministic identity, linkage, ordering, and validation tests
-- [ ] GitHub Actions validation on branch head
+- [x] GitHub Actions validation on branch head
 - [ ] Supabase event/contact persistence integration
 - [ ] Live account context validation
 
