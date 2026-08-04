@@ -49,10 +49,17 @@
 - [ ] Live OpenAI meeting-prep evaluation
 - [ ] Supabase commitment and correction persistence
 
-### P4C — User-controlled memory and semantic search
-- [ ] Tenant-isolated embeddings and semantic retrieval
-- [ ] Explicit memory save, edit, expiry, and deletion
-- [ ] Source provenance and retrieval audit
+### P4C — User-controlled memory and semantic search — VALIDATION PENDING
+- [x] Explicit user-owned memory save, edit, expiry, soft deletion, and audit lifecycle
+- [x] Tenant-isolated semantic document contracts and ranking
+- [x] Server-side OpenAI embedding adapter with configurable dimensions
+- [x] Supabase pgvector schema, HNSW index, owner RLS, and service-role-only retrieval function
+- [x] Source provenance and retrieval audit persistence
+- [x] Expired and deleted document exclusion
+- [x] Cross-tenant result rejection in application and store boundaries
+- [x] Deterministic lifecycle, ranking, adapter, and isolation tests
+- [ ] GitHub Actions validation on final branch head
+- [ ] Live OpenAI embedding and Supabase pgvector validation
 
 ## P5 — Approval-gated actions
 - [ ] Reply drafting
