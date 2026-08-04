@@ -5,6 +5,17 @@ import { ConnectionCard } from "@/components/connection-card";
 
 export const dynamic = "force-dynamic";
 
+type ConnectionRow = {
+  id: string;
+  provider: "google" | "microsoft";
+  account_email: string;
+  display_name: string | null;
+  status: string;
+  scopes: string[];
+  last_sync_at: string | null;
+  last_error: string | null;
+};
+
 function firstParam(value: string | string[] | undefined): string | null {
   return Array.isArray(value) ? value[0] || null : value || null;
 }
@@ -37,6 +48,7 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
 
   const connected = firstParam(params.connected);
   const errorMessage = connectionErrorMessage(firstParam(params.error));
+  const connectionRows = (connections || []) as ConnectionRow[];
 
   return (
     <div className="content-stack">
@@ -49,8 +61,8 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
       {connected && <div className="notice success">{connected === "google" ? "Google" : connected === "microsoft" ? "Microsoft" : "Account"} connected. Run the first sync below.</div>}
       {errorMessage && <div className="notice error">{errorMessage}</div>}
       <section className="card">
-        <div className="section-heading"><div><p className="eyebrow">Account health</p><h2>{connections?.length || 0} connected</h2></div></div>
-        <div className="connection-list">{connections?.length ? connections.map((connection: any) => <ConnectionCard key={connection.id} connection={connection}/>) : <div className="empty-inline"><b>No connected accounts</b><p>Connect Google or Microsoft above. Read access is requested separately from Compass sign-in.</p></div>}</div>
+        <div className="section-heading"><div><p className="eyebrow">Account health</p><h2>{connectionRows.length} connected</h2></div></div>
+        <div className="connection-list">{connectionRows.length ? connectionRows.map(connection => <ConnectionCard key={connection.id} connection={connection}/>) : <div className="empty-inline"><b>No connected accounts</b><p>Connect Google or Microsoft above. Read access is requested separately from Compass sign-in.</p></div>}</div>
       </section>
       <section className="card"><h2>What this build requests</h2><div className="permission-grid"><Permission title="Google" items={["Gmail read-only","Calendar read-only","Contacts read-only"]}/><Permission title="Microsoft" items={["Mail.Read","Calendars.Read","Contacts.Read"]}/><Permission title="Not requested" items={["Send email","Delete email","Write calendar","Passwords"]}/></div></section>
     </div>
