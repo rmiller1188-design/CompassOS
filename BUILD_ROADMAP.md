@@ -24,7 +24,7 @@
 - [ ] Supabase event/contact persistence and live account validation
 
 ## P4 — Attention and memory — IN PROGRESS
-### P4A — OpenAI attention triage and Catch Me Up core — VALIDATION PENDING
+### P4A — OpenAI attention triage and Catch Me Up core — REVIEWABLE CORE / LIVE EVALUATION BLOCKED
 - [x] Deterministic bounded candidate selection before model use
 - [x] Explainable message indicators and pre-ranking
 - [x] OpenAI Responses API server-side adapter
@@ -34,7 +34,7 @@
 - [x] Catch Me Up grouping with source provenance
 - [x] Provider request/error metadata without token exposure
 - [x] Deterministic mock tests
-- [ ] GitHub Actions validation on final branch head
+- [x] GitHub Actions validation on branch head
 - [ ] Live OpenAI API evaluation and prompt-quality dataset
 
 ### P4B — Meeting preparation and commitments
