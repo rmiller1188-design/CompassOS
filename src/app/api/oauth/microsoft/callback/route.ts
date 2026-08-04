@@ -7,12 +7,19 @@ import { writeProviderTokens } from "@/lib/providers/vault";
 import { env } from "@/lib/env";
 
 const STATE_COOKIE = "compass_oauth_state_microsoft";
+const PKCE_COOKIE = "compass_oauth_pkce_microsoft";
 
 function publicError(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
   if (message === "OAUTH_ACCESS_DENIED") return "microsoft_access_denied";
   if (message === "UNAUTHORIZED") return "sign_in_required";
   return "microsoft_connection_failed";
+}
+
+function clearOAuthCookies(response: NextResponse): NextResponse {
+  response.cookies.delete(STATE_COOKIE);
+  response.cookies.delete(PKCE_COOKIE);
+  return response;
 }
 
 export async function GET(request: NextRequest) {
@@ -29,7 +36,8 @@ export async function GET(request: NextRequest) {
     const code = request.nextUrl.searchParams.get("code");
     const returnedState = request.nextUrl.searchParams.get("state");
     const cookieState = request.cookies.get(STATE_COOKIE)?.value;
-    if (!code || !returnedState || !cookieState || returnedState !== cookieState) {
+    const codeVerifier = request.cookies.get(PKCE_COOKIE)?.value;
+    if (!code || !returnedState || !cookieState || !codeVerifier || returnedState !== cookieState) {
       throw new Error("INVALID_OAUTH_CALLBACK");
     }
 
@@ -37,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (state.provider !== "microsoft" || state.userId !== user.id) throw new Error("OAUTH_SUBJECT_MISMATCH");
     await assertProfileOwner(user.id, state.profileId);
 
-    const tokens = await exchangeMicrosoftCode(code);
+    const tokens = await exchangeMicrosoftCode(code, codeVerifier);
     const identity = await microsoftIdentity(tokens.accessToken);
     const admin = createAdminClient();
     const { data: profile } = await admin
@@ -76,9 +84,7 @@ export async function GET(request: NextRequest) {
     if (healthyUpdate.error) throw healthyUpdate.error;
 
     destination.searchParams.set("connected", "microsoft");
-    const response = NextResponse.redirect(destination);
-    response.cookies.delete(STATE_COOKIE);
-    return response;
+    return clearOAuthCookies(NextResponse.redirect(destination));
   } catch (error) {
     console.error("Microsoft OAuth callback failed", error instanceof Error ? error.message : error);
     if (connectionId) {
@@ -94,8 +100,6 @@ export async function GET(request: NextRequest) {
       }
     }
     destination.searchParams.set("error", publicError(error));
-    const response = NextResponse.redirect(destination);
-    response.cookies.delete(STATE_COOKIE);
-    return response;
+    return clearOAuthCookies(NextResponse.redirect(destination));
   }
 }
