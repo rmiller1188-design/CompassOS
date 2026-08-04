@@ -21,7 +21,7 @@
 - [ ] Concrete Supabase adapter integration test
 
 ## P2 — Incremental communication sync — IN PROGRESS
-### P2A — Provider-neutral mail sync core — VALIDATION PENDING
+### P2A — Provider-neutral mail sync core — REVIEWABLE
 - [x] Bootstrap versus incremental cursor selection
 - [x] Bounded pagination and cursor-cycle rejection
 - [x] Normalized message upsert boundary
@@ -29,17 +29,20 @@
 - [x] Rate-limit/transient/auth failure classification
 - [x] Reauthorization transition on expired credentials
 - [x] Sync-run audit contract and dependency-free tests
-- [ ] GitHub Actions complete validation on branch head
-- [ ] Concrete Gmail history adapter
-- [ ] Concrete Microsoft Graph delta adapter
-- [ ] Supabase message/cursor adapter integration
+- [x] GitHub Actions validation on branch head
 
-### P2B — Provider adapters and persistence
-- [ ] Gmail full bootstrap plus history sync
-- [ ] Microsoft Graph mail delta sync
-- [ ] Pagination and attachment metadata
-- [ ] Normalized thread/message persistence
-- [ ] Retry queues, rate-limit handling, and dead-letter visibility
+### P2B — Gmail and Microsoft mail protocol adapters — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Gmail full bootstrap pagination
+- [x] Gmail history-based incremental sync
+- [x] Gmail metadata normalization and history checkpointing
+- [x] Microsoft Graph message delta sync
+- [x] Opaque Graph nextLink/deltaLink continuation
+- [x] Provider retry-after propagation
+- [x] Deterministic provider mock tests
+- [ ] Live Gmail mailbox validation
+- [ ] Live Microsoft 365 mailbox validation
+- [ ] Supabase message/thread/cursor adapter integration
+- [ ] Retry queue and dead-letter persistence
 
 ## P3 — Calendar and contacts sync
 - [ ] Google Calendar sync tokens
