@@ -37,7 +37,7 @@
 - [x] GitHub Actions validation on branch head
 - [ ] Live OpenAI API evaluation and prompt-quality dataset
 
-### P4B — Meeting preparation and commitments — VALIDATION PENDING
+### P4B — Meeting preparation and commitments — REVIEWABLE CORE / LIVE EVALUATION BLOCKED
 - [x] Meeting preparation generation from P3C context
 - [x] Strict attendee and source-thread provenance validation
 - [x] Structured Responses API output with `store: false`
@@ -45,7 +45,7 @@
 - [x] User-owned confirmation, revision, completion, and dismissal lifecycle
 - [x] User correction capture
 - [x] Deterministic mock and state-transition tests
-- [ ] GitHub Actions validation on final branch head
+- [x] GitHub Actions validation on branch head
 - [ ] Live OpenAI meeting-prep evaluation
 - [ ] Supabase commitment and correction persistence
 
