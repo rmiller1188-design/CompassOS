@@ -2,9 +2,10 @@ services:
   - type: web
     name: compass-os-m26
     runtime: node
-    buildCommand: npm install && npm run build
+    branch: m26-connected-accounts
+    buildCommand: npm install --no-audit --no-fund && npm run build
     startCommand: npm run start
-    autoDeployTrigger: commit
+    autoDeployTrigger: checksPass
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
@@ -18,9 +19,9 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: TOKEN_ENCRYPTION_KEY
-        sync: false
+        generateValue: true
       - key: OAUTH_STATE_SECRET
-        sync: false
+        generateValue: true
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
