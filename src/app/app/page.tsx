@@ -20,12 +20,9 @@ export default async function DashboardPage() {
 
   const healthy = (connections.data || []).filter(connection => connection.status === "healthy").length;
   const nextEvent = events.data?.[0];
-  const hasSharedWorkspace = (sharedWorkspaces.data || []).some(row => {
-    const related = row.workspaces;
-    return Array.isArray(related)
-      ? related.some(workspace => workspace.kind === "shared")
-      : related?.kind === "shared";
-  });
+  const hasSharedWorkspace = (sharedWorkspaces.data || []).some(row =>
+    row.workspaces.some(workspace => workspace.kind === "shared")
+  );
 
   return (
     <div className="dashboard-grid">
