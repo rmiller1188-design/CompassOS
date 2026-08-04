@@ -17,7 +17,7 @@
 - [x] Retry worker leasing and dead-letter operations
 - [ ] Live mailbox and Supabase validation
 
-## P3 — Calendar and contacts sync — IN PROGRESS
+## P3 — Calendar and contacts sync — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 ### P3A — Calendar incremental sync — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Google Calendar sync tokens and Microsoft calendarView delta
 - [x] Normalized event mapping and terminal checkpoint guarantees
@@ -26,24 +26,27 @@
 
 ### P3B — Contacts incremental sync — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Provider-neutral contact synchronization orchestration
-- [x] Google People connections pagination and sync tokens
-- [x] Microsoft Graph contacts delta continuation
+- [x] Google People and Microsoft Graph contacts continuation
 - [x] Normalized contact contract including deletions
-- [x] Terminal-only checkpoint advancement and cursor-cycle protection
-- [x] Deterministic provider and orchestration tests
-- [x] GitHub Actions validation on branch head
-- [ ] Supabase contact persistence and identity resolution
-- [ ] Live Google and Microsoft contacts validation
+- [x] Deterministic tests and GitHub Actions validation
+- [ ] Supabase contact persistence
+- [ ] Live contacts validation
 
-### P3C — Meeting context graph
-- [ ] Resolve contacts across provider identities
-- [ ] Connect contacts, messages, threads, and calendar attendees
-- [ ] Meeting preparation context boundary
+### P3C — Meeting context graph — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Resolve equivalent provider contacts by normalized email
+- [x] Connect calendar attendees to contacts and recent message threads
+- [x] Exclude deleted contact tombstones
+- [x] Bound messages per attendee and preserve provenance
+- [x] Produce a compact meeting-preparation input boundary
+- [x] Deterministic identity, linkage, ordering, and validation tests
+- [x] GitHub Actions validation on branch head
+- [ ] Supabase event/contact persistence integration
+- [ ] Live account context validation
 
 ## P4 — Attention and memory
 - [ ] AI triage with explainable scoring
 - [ ] Catch Me Up briefs
-- [ ] Meeting preparation
+- [ ] Meeting preparation generation
 - [ ] Commitment extraction
 - [ ] User-controlled memory and deletion
 - [ ] Semantic search with tenant isolation
