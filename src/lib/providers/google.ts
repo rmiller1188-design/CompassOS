@@ -13,6 +13,21 @@ export const GOOGLE_READ_SCOPES = [
   "https://www.googleapis.com/auth/contacts.readonly"
 ];
 
+function googleTokenSet(json: Record<string, unknown>, retainedRefreshToken: string | null = null): ProviderTokenSet {
+  if (typeof json.access_token !== "string" || !json.access_token) {
+    throw new Error("GOOGLE_TOKEN_RESPONSE_INVALID");
+  }
+  const expiresIn = Number(json.expires_in);
+  return {
+    accessToken: json.access_token,
+    refreshToken: typeof json.refresh_token === "string" && json.refresh_token ? json.refresh_token : retainedRefreshToken,
+    expiresAt: Number.isFinite(expiresIn) && expiresIn > 0 ? new Date(Date.now() + expiresIn * 1000).toISOString() : null,
+    tokenType: typeof json.token_type === "string" ? json.token_type : null,
+    scope: typeof json.scope === "string" ? json.scope : null,
+    idToken: typeof json.id_token === "string" ? json.id_token : null
+  };
+}
+
 export function googleAuthorizationUrl(state: string): string {
   const url = new URL(GOOGLE_AUTH);
   url.searchParams.set("client_id", env.googleClientId());
@@ -40,15 +55,7 @@ export async function exchangeGoogleCode(code: string): Promise<ProviderTokenSet
     cache: "no-store"
   });
   if (!response.ok) throw new Error(`GOOGLE_TOKEN_EXCHANGE_${response.status}`);
-  const json = await response.json() as Record<string, unknown>;
-  return {
-    accessToken: String(json.access_token),
-    refreshToken: json.refresh_token ? String(json.refresh_token) : null,
-    expiresAt: json.expires_in ? new Date(Date.now() + Number(json.expires_in) * 1000).toISOString() : null,
-    tokenType: json.token_type ? String(json.token_type) : null,
-    scope: json.scope ? String(json.scope) : null,
-    idToken: json.id_token ? String(json.id_token) : null
-  };
+  return googleTokenSet(await response.json() as Record<string, unknown>);
 }
 
 export async function refreshGoogleToken(refreshToken: string): Promise<ProviderTokenSet> {
@@ -64,14 +71,7 @@ export async function refreshGoogleToken(refreshToken: string): Promise<Provider
     cache: "no-store"
   });
   if (!response.ok) throw new Error(`GOOGLE_TOKEN_REFRESH_${response.status}`);
-  const json = await response.json() as Record<string, unknown>;
-  return {
-    accessToken: String(json.access_token),
-    refreshToken,
-    expiresAt: json.expires_in ? new Date(Date.now() + Number(json.expires_in) * 1000).toISOString() : null,
-    tokenType: json.token_type ? String(json.token_type) : null,
-    scope: json.scope ? String(json.scope) : null
-  };
+  return googleTokenSet(await response.json() as Record<string, unknown>, refreshToken);
 }
 
 export async function googleIdentity(accessToken: string): Promise<ProviderIdentity> {
@@ -81,9 +81,12 @@ export async function googleIdentity(accessToken: string): Promise<ProviderIdent
   });
   if (!response.ok) throw new Error(`GOOGLE_IDENTITY_${response.status}`);
   const json = await response.json() as Record<string, unknown>;
+  if (typeof json.sub !== "string" || !json.sub || typeof json.email !== "string" || !json.email) {
+    throw new Error("GOOGLE_IDENTITY_RESPONSE_INVALID");
+  }
   return {
-    externalAccountId: String(json.sub),
-    email: String(json.email),
-    displayName: json.name ? String(json.name) : null
+    externalAccountId: json.sub,
+    email: json.email,
+    displayName: typeof json.name === "string" && json.name ? json.name : null
   };
 }
