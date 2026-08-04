@@ -30,14 +30,14 @@
 - [ ] Live OpenAI evaluation and Supabase pgvector validation
 
 ## P5 — Approval-gated actions — IN PROGRESS
-### P5A — Reply drafting and approval integrity — VALIDATION PENDING
+### P5A — Reply drafting and approval integrity — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Server-side OpenAI reply drafting with strict structured output and `store: false`
 - [x] Source-message provenance validation
 - [x] Normalized recipients and immutable canonical payload hashing
 - [x] Reviewable payload diff generation
 - [x] Approval invalidation after any payload change
 - [x] Deterministic draft, provenance, hashing, diff, and approval-integrity tests
-- [ ] GitHub Actions validation on final branch head
+- [x] GitHub Actions validation on branch head
 - [ ] Live OpenAI reply-quality evaluation
 - [ ] Supabase encrypted outbound payload persistence
 
