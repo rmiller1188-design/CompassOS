@@ -24,7 +24,7 @@ function googleHeader(headers: unknown, name: string): string | null {
   return match?.value ? String(match.value) : null;
 }
 
-export async function syncConnection(connectionId: string, userId: string) {
+export async function syncConnection(connectionId: string, userId: string, expectedProvider: ProviderName) {
   const admin = createAdminClient();
   const { data: connection, error } = await admin
     .from("provider_connections")
@@ -33,6 +33,14 @@ export async function syncConnection(connectionId: string, userId: string) {
     .eq("owner_id", userId)
     .single();
   if (error || !connection) throw new Error("CONNECTION_NOT_FOUND");
+  if (connection.provider !== expectedProvider) throw new Error("PROVIDER_CONNECTION_MISMATCH");
+
+  const staleBefore = new Date(Date.now() - 20 * 60_000).toISOString();
+  await admin.from("sync_runs").update({
+    status: "failed",
+    completed_at: new Date().toISOString(),
+    error_code: "STALE_SYNC_LEASE"
+  }).eq("connection_id", connection.id).eq("status", "running").lt("started_at", staleBefore);
 
   const run = await admin.from("sync_runs").insert({
     connection_id: connection.id,
@@ -40,6 +48,16 @@ export async function syncConnection(connectionId: string, userId: string) {
     status: "running",
     started_at: new Date().toISOString()
   }).select("id").single();
+  if (run.error) {
+    if (run.error.code === "23505") throw new Error("SYNC_ALREADY_RUNNING");
+    throw new Error("SYNC_LEASE_FAILED");
+  }
+
+  await admin.from("provider_connections").update({
+    status: "syncing",
+    last_error: null,
+    updated_at: new Date().toISOString()
+  }).eq("id", connection.id).eq("owner_id", userId);
 
   try {
     const provider = connection.provider as ProviderName;
@@ -60,12 +78,19 @@ export async function syncConnection(connectionId: string, userId: string) {
     }).eq("id", run.data.id);
     return counts;
   } catch (syncError) {
-    const message = syncError instanceof Error ? syncError.message : "Unknown sync error";
-    await admin.from("provider_connections").update({ status: "error", last_error: message }).eq("id", connection.id);
+    const message = syncError instanceof Error ? syncError.message : "SYNC_FAILED";
+    const reauth = message === "PROVIDER_REAUTH_REQUIRED"
+      || /^(GOOGLE_TOKEN_REFRESH|MICROSOFT_TOKEN_REFRESH|GOOGLE_API_401|MICROSOFT_GRAPH_401)/.test(message);
+    const publicCode = reauth ? "PROVIDER_REAUTH_REQUIRED" : "SYNC_FAILED";
+    await admin.from("provider_connections").update({
+      status: reauth ? "reauth_required" : "error",
+      last_error: publicCode,
+      updated_at: new Date().toISOString()
+    }).eq("id", connection.id).eq("owner_id", userId);
     if (run.data?.id) await admin.from("sync_runs").update({
       status: "failed",
       completed_at: new Date().toISOString(),
-      error_code: message.slice(0, 180)
+      error_code: publicCode
     }).eq("id", run.data.id);
     throw syncError;
   }
@@ -100,7 +125,8 @@ async function syncGoogle(accessToken: string, connection: Record<string, string
       raw_metadata: { labelIds: message.labelIds || [] },
       updated_at: new Date().toISOString()
     }, { onConflict: "provider,connection_id,external_id" });
-    if (!error) mailCount++;
+    if (error) throw new Error("SYNC_WRITE_FAILED");
+    mailCount++;
   }
 
   const timeMin = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -132,7 +158,8 @@ async function syncGoogle(accessToken: string, connection: Record<string, string
       raw_metadata: { htmlLink: event.htmlLink || null },
       updated_at: new Date().toISOString()
     }, { onConflict: "provider,connection_id,external_id" });
-    if (!error) calendarCount++;
+    if (error) throw new Error("SYNC_WRITE_FAILED");
+    calendarCount++;
   }
 
   const people = await googleJson(accessToken, "https://people.googleapis.com/v1/people/me/connections?pageSize=100&personFields=names,emailAddresses,phoneNumbers,organizations");
@@ -153,7 +180,8 @@ async function syncGoogle(accessToken: string, connection: Record<string, string
       phone_numbers: phones.map(x => x.value).filter(Boolean),
       updated_at: new Date().toISOString()
     }, { onConflict: "provider,connection_id,external_id" });
-    if (!error) peopleCount++;
+    if (error) throw new Error("SYNC_WRITE_FAILED");
+    peopleCount++;
   }
   return { mail: mailCount, calendar: calendarCount, people: peopleCount };
 }
@@ -184,7 +212,8 @@ async function syncMicrosoft(accessToken: string, connection: Record<string, str
       raw_metadata: { isRead: Boolean(message.isRead) },
       updated_at: new Date().toISOString()
     }, { onConflict: "provider,connection_id,external_id" });
-    if (!error) mailCount++;
+    if (error) throw new Error("SYNC_WRITE_FAILED");
+    mailCount++;
   }
 
   const start = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -216,7 +245,8 @@ async function syncMicrosoft(accessToken: string, connection: Record<string, str
       raw_metadata: { webLink: event.webLink || null },
       updated_at: new Date().toISOString()
     }, { onConflict: "provider,connection_id,external_id" });
-    if (!error) calendarCount++;
+    if (error) throw new Error("SYNC_WRITE_FAILED");
+    calendarCount++;
   }
 
   const contacts = await microsoftJson(accessToken, "https://graph.microsoft.com/v1.0/me/contacts?$top=100&$select=id,displayName,emailAddresses,mobilePhone,businessPhones");
@@ -236,7 +266,8 @@ async function syncMicrosoft(accessToken: string, connection: Record<string, str
       phone_numbers: phoneNumbers,
       updated_at: new Date().toISOString()
     }, { onConflict: "provider,connection_id,external_id" });
-    if (!error) peopleCount++;
+    if (error) throw new Error("SYNC_WRITE_FAILED");
+    peopleCount++;
   }
   return { mail: mailCount, calendar: calendarCount, people: peopleCount };
 }
