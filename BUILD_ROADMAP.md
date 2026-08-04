@@ -28,13 +28,13 @@
 - [ ] Live scheduled worker deployment
 
 ## P3 — Calendar and contacts sync — IN PROGRESS
-### P3A — Google and Microsoft calendar incremental sync — VALIDATION PENDING
+### P3A — Google and Microsoft calendar incremental sync — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Provider-neutral calendar synchronization orchestration
 - [x] Google Calendar bootstrap, page tokens, and sync tokens
 - [x] Microsoft calendarView delta, nextLink, and deltaLink handling
 - [x] Normalized event mapping and terminal checkpoint guarantees
 - [x] Deterministic provider and orchestration tests
-- [ ] GitHub Actions validation on branch head
+- [x] GitHub Actions validation on branch head
 - [ ] Live Google and Microsoft calendar validation
 - [ ] Supabase event persistence integration
 
