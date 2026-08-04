@@ -16,6 +16,21 @@ const tenant = () => env.microsoftTenant();
 const authorizeEndpoint = () => `https://login.microsoftonline.com/${tenant()}/oauth2/v2.0/authorize`;
 const tokenEndpoint = () => `https://login.microsoftonline.com/${tenant()}/oauth2/v2.0/token`;
 
+function microsoftTokenSet(json: Record<string, unknown>, retainedRefreshToken: string | null = null): ProviderTokenSet {
+  if (typeof json.access_token !== "string" || !json.access_token) {
+    throw new Error("MICROSOFT_TOKEN_RESPONSE_INVALID");
+  }
+  const expiresIn = Number(json.expires_in);
+  return {
+    accessToken: json.access_token,
+    refreshToken: typeof json.refresh_token === "string" && json.refresh_token ? json.refresh_token : retainedRefreshToken,
+    expiresAt: Number.isFinite(expiresIn) && expiresIn > 0 ? new Date(Date.now() + expiresIn * 1000).toISOString() : null,
+    tokenType: typeof json.token_type === "string" ? json.token_type : null,
+    scope: typeof json.scope === "string" ? json.scope : null,
+    idToken: typeof json.id_token === "string" ? json.id_token : null
+  };
+}
+
 export function microsoftAuthorizationUrl(state: string): string {
   const url = new URL(authorizeEndpoint());
   url.searchParams.set("client_id", env.microsoftClientId());
@@ -42,15 +57,7 @@ export async function exchangeMicrosoftCode(code: string): Promise<ProviderToken
     cache: "no-store"
   });
   if (!response.ok) throw new Error(`MICROSOFT_TOKEN_EXCHANGE_${response.status}`);
-  const json = await response.json() as Record<string, unknown>;
-  return {
-    accessToken: String(json.access_token),
-    refreshToken: json.refresh_token ? String(json.refresh_token) : null,
-    expiresAt: json.expires_in ? new Date(Date.now() + Number(json.expires_in) * 1000).toISOString() : null,
-    tokenType: json.token_type ? String(json.token_type) : null,
-    scope: json.scope ? String(json.scope) : null,
-    idToken: json.id_token ? String(json.id_token) : null
-  };
+  return microsoftTokenSet(await response.json() as Record<string, unknown>);
 }
 
 export async function refreshMicrosoftToken(refreshToken: string): Promise<ProviderTokenSet> {
@@ -67,15 +74,7 @@ export async function refreshMicrosoftToken(refreshToken: string): Promise<Provi
     cache: "no-store"
   });
   if (!response.ok) throw new Error(`MICROSOFT_TOKEN_REFRESH_${response.status}`);
-  const json = await response.json() as Record<string, unknown>;
-  return {
-    accessToken: String(json.access_token),
-    refreshToken: json.refresh_token ? String(json.refresh_token) : refreshToken,
-    expiresAt: json.expires_in ? new Date(Date.now() + Number(json.expires_in) * 1000).toISOString() : null,
-    tokenType: json.token_type ? String(json.token_type) : null,
-    scope: json.scope ? String(json.scope) : null,
-    idToken: json.id_token ? String(json.id_token) : null
-  };
+  return microsoftTokenSet(await response.json() as Record<string, unknown>, refreshToken);
 }
 
 export async function microsoftIdentity(accessToken: string): Promise<ProviderIdentity> {
@@ -85,9 +84,17 @@ export async function microsoftIdentity(accessToken: string): Promise<ProviderId
   });
   if (!response.ok) throw new Error(`MICROSOFT_IDENTITY_${response.status}`);
   const json = await response.json() as Record<string, unknown>;
+  const email = typeof json.mail === "string" && json.mail
+    ? json.mail
+    : typeof json.userPrincipalName === "string" && json.userPrincipalName
+      ? json.userPrincipalName
+      : null;
+  if (typeof json.id !== "string" || !json.id || !email) {
+    throw new Error("MICROSOFT_IDENTITY_RESPONSE_INVALID");
+  }
   return {
-    externalAccountId: String(json.id),
-    email: String(json.mail || json.userPrincipalName),
-    displayName: json.displayName ? String(json.displayName) : null
+    externalAccountId: json.id,
+    email,
+    displayName: typeof json.displayName === "string" && json.displayName ? json.displayName : null
   };
 }
