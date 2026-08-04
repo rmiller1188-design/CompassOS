@@ -23,46 +23,33 @@
 - [x] Cross-provider meeting context graph
 - [ ] Supabase event/contact persistence and live account validation
 
-## P4 — Attention and memory — IN PROGRESS
-### P4A — OpenAI attention triage and Catch Me Up core — REVIEWABLE CORE / LIVE EVALUATION BLOCKED
-- [x] Deterministic bounded candidate selection before model use
-- [x] Explainable message indicators and pre-ranking
-- [x] OpenAI Responses API server-side adapter
-- [x] Structured JSON Schema output with `store: false`
-- [x] Strict candidate-ID validation preventing invented items
-- [x] Advisory priority, action, commitment, and due-date extraction
-- [x] Catch Me Up grouping with source provenance
-- [x] Provider request/error metadata without token exposure
-- [x] Deterministic mock tests
-- [x] GitHub Actions validation on branch head
-- [ ] Live OpenAI API evaluation and prompt-quality dataset
+## P4 — Attention and memory — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] OpenAI attention triage and Catch Me Up core
+- [x] Meeting preparation and user-owned commitment lifecycle
+- [x] User-controlled memory and tenant-isolated semantic search
+- [ ] Live OpenAI evaluation and Supabase pgvector validation
 
-### P4B — Meeting preparation and commitments — REVIEWABLE CORE / LIVE EVALUATION BLOCKED
-- [x] Meeting preparation generation from P3C context
-- [x] Strict attendee and source-thread provenance validation
-- [x] Structured Responses API output with `store: false`
-- [x] Proposed commitment creation from meeting preparation
-- [x] User-owned confirmation, revision, completion, and dismissal lifecycle
-- [x] User correction capture
-- [x] Deterministic mock and state-transition tests
-- [x] GitHub Actions validation on branch head
-- [ ] Live OpenAI meeting-prep evaluation
-- [ ] Supabase commitment and correction persistence
+## P5 — Approval-gated actions — IN PROGRESS
+### P5A — Reply drafting and approval integrity — VALIDATION PENDING
+- [x] Server-side OpenAI reply drafting with strict structured output and `store: false`
+- [x] Source-message provenance validation
+- [x] Normalized recipients and immutable canonical payload hashing
+- [x] Reviewable payload diff generation
+- [x] Approval invalidation after any payload change
+- [x] Deterministic draft, provenance, hashing, diff, and approval-integrity tests
+- [ ] GitHub Actions validation on final branch head
+- [ ] Live OpenAI reply-quality evaluation
+- [ ] Supabase encrypted outbound payload persistence
 
-### P4C — User-controlled memory and semantic search — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] Explicit user-owned memory save, edit, expiry, soft deletion, and audit lifecycle
-- [x] Tenant-isolated semantic document contracts and ranking
-- [x] Server-side OpenAI embedding adapter with configurable dimensions
-- [x] Supabase pgvector schema, HNSW index, owner RLS, and service-role-only retrieval function
-- [x] Source provenance and retrieval audit persistence
-- [x] Expired and deleted document exclusion
-- [x] Cross-tenant result rejection in application and store boundaries
-- [x] Deterministic lifecycle, ranking, adapter, and isolation tests
-- [x] GitHub Actions validation on branch head
-- [ ] Live OpenAI embedding and Supabase pgvector validation
+### P5B — Provider execution and receipts
+- [ ] Mail send opt-in scopes and separate consent upgrade
+- [ ] Gmail reply execution adapter
+- [ ] Microsoft Graph reply execution adapter
+- [ ] Pre-execution approval/hash verification
+- [ ] Provider receipt and failure audit persistence
 
-## P5 — Approval-gated actions
-- [ ] Reply drafting
-- [ ] Mail send opt-in scopes
+### P5C — Calendar approval actions and UX
 - [ ] Calendar action opt-in scopes
-- [ ] Approval UI, payload diff, audit, execution, and provider receipts
+- [ ] Approval UI with payload diff on phone and desktop
+- [ ] Event create/update/respond execution adapters
+- [ ] Accessibility and EdgePilot-AI UX benchmark pass
