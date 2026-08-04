@@ -14,14 +14,30 @@ type Connection = {
   scopes: string[];
 };
 
+function syncErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case "sync_already_running":
+      return "A sync is already running for this account.";
+    case "provider_reauthorization_required":
+      return "This account must be reconnected before it can sync again.";
+    case "connection_not_found":
+      return "This connection is no longer available.";
+    case "provider_connection_mismatch":
+      return "The selected provider does not match this connection.";
+    default:
+      return "Sync failed. Review the account status and server logs.";
+  }
+}
+
 export function ConnectionCard({ connection }: { connection: Connection }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
   const disconnected = connection.status === "disconnected";
+  const reauthRequired = connection.status === "reauth_required";
 
   async function sync() {
-    if (disconnected) return;
+    if (disconnected || reauthRequired) return;
     setBusy(true);
     setMessage("");
     try {
@@ -31,8 +47,12 @@ export function ConnectionCard({ connection }: { connection: Connection }) {
         body: JSON.stringify({ connectionId: connection.id })
       });
       const json = await response.json();
-      const total = Object.values(json.counts || {}).reduce((sum: number, value) => sum + Number(value), 0);
-      setMessage(response.ok ? `Synced ${total} items.` : json.error || "Sync failed");
+      if (!response.ok) {
+        setMessage(syncErrorMessage(json.error));
+      } else {
+        const total = Object.values(json.counts || {}).reduce((sum: number, value) => sum + Number(value), 0);
+        setMessage(`Synced ${total} items.`);
+      }
       router.refresh();
     } catch {
       setMessage("Sync failed. Check your connection and try again.");
@@ -52,12 +72,15 @@ export function ConnectionCard({ connection }: { connection: Connection }) {
       if (!response.ok) throw new Error(json.error || "Disconnect failed");
       setMessage("Disconnected. Imported data was preserved.");
       router.refresh();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Disconnect failed");
+    } catch {
+      setMessage("Compass could not disconnect this account.");
     } finally {
       setBusy(false);
     }
   }
+
+  const syncDisabled = busy || disconnected || reauthRequired;
+  const syncLabel = disconnected || reauthRequired ? "Reconnect above" : busy ? "Working…" : "Sync now";
 
   return (
     <article className="connection-card">
@@ -66,12 +89,12 @@ export function ConnectionCard({ connection }: { connection: Connection }) {
         <b>{connection.display_name || connection.account_email}</b>
         <p>{connection.account_email}</p>
         <small>{connection.scopes.length} granted scopes • {connection.last_sync_at ? `last synced ${new Date(connection.last_sync_at).toLocaleString()}` : "not synced yet"}</small>
-        {connection.last_error && <small className="error-text">{connection.last_error}</small>}
-        {disconnected && <small>Use the Connect button above to authorize this account again.</small>}
+        {connection.last_error && <small className="error-text">{connection.last_error === "PROVIDER_REAUTH_REQUIRED" ? "Reauthorization required" : "The last sync did not complete"}</small>}
+        {(disconnected || reauthRequired) && <small>Use the Connect button above to authorize this account again.</small>}
       </div>
-      <span className={`status ${connection.status}`}>{connection.status}</span>
+      <span className={`status ${connection.status}`}>{connection.status.replaceAll("_", " ")}</span>
       <div className="connection-actions">
-        <button className="button secondary" onClick={sync} disabled={busy || disconnected}>{disconnected ? "Reconnect above" : busy ? "Working…" : "Sync now"}</button>
+        <button className="button secondary" onClick={sync} disabled={syncDisabled}>{syncLabel}</button>
         <button className="button danger" onClick={disconnect} disabled={busy || disconnected}>Disconnect</button>
       </div>
       {message && <p className="inline-message">{message}</p>}
