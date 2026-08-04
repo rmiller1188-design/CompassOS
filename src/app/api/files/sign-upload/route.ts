@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { assertWorkspaceMember, requireApiUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createStoragePath } from "@/lib/storage-path";
 
 const bodySchema = z.object({
   workspaceId: z.string().uuid(),
@@ -11,17 +12,23 @@ const bodySchema = z.object({
   scope: z.enum(["private", "shared"])
 });
 
-const cleanName = (name: string) => name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-140);
-
 export async function POST(request: NextRequest) {
   try {
     const user = await requireApiUser();
     const input = bodySchema.parse(await request.json());
     await assertWorkspaceMember(user.id, input.workspaceId);
+
     const admin = createAdminClient();
-    const path = `${input.workspaceId}/${user.id}/${crypto.randomUUID()}-${cleanName(input.fileName)}`;
+    const path = createStoragePath({
+      workspaceId: input.workspaceId,
+      userId: user.id,
+      visibility: input.scope,
+      fileName: input.fileName
+    });
+
     const { data, error } = await admin.storage.from("compass-files").createSignedUploadUrl(path);
     if (error || !data) throw error || new Error("SIGNED_UPLOAD_FAILED");
+
     return NextResponse.json({ path, token: data.token, signedUrl: data.signedUrl });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to prepare upload";
