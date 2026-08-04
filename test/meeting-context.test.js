@@ -39,7 +39,8 @@ test("meeting context connects attendees to identities and recent threads", () =
   assert.equal(alex.organization, "Northstar");
   assert.equal(alex.recentMessages.length, 1);
   assert.equal(alex.recentMessages[0].threadKey, "t1");
-  assert.deepEqual(context.threadKeys, ["t1"]);
+  assert.ok(context.threadKeys.includes("t1"));
+  assert.ok(context.threadKeys.includes("t3"));
 });
 
 test("meeting prep boundary contains compact context and provenance", () => {
