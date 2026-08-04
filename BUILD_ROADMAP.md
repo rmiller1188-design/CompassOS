@@ -18,7 +18,7 @@
 - [x] Encrypted PKCE persistence and single-use state
 - [x] Refresh locking, rotation, reauthorization, disconnect, and audit
 - [ ] Live provider credential validation
-- [ ] Concrete Supabase adapter integration test
+- [ ] Live Supabase adapter integration test
 
 ## P2 — Incremental communication sync — IN PROGRESS
 ### P2A — Provider-neutral mail sync core — REVIEWABLE
@@ -41,8 +41,19 @@
 - [x] Deterministic provider mock tests
 - [ ] Live Gmail mailbox validation
 - [ ] Live Microsoft 365 mailbox validation
-- [ ] Supabase message/thread/cursor adapter integration
-- [ ] Retry queue and dead-letter persistence
+
+### P2C — Supabase mail persistence — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Account-bound Supabase store adapter
+- [x] Message and derived thread upserts
+- [x] Provider-specific cursor persistence
+- [x] Sync-run records
+- [x] Retry queue persistence
+- [x] Reauthorization account transition
+- [x] Owner-read RLS and service-role-only ingestion boundary
+- [x] Cross-account write rejection tests
+- [x] GitHub Actions validation on branch head
+- [ ] Live Supabase migration and integration validation
+- [ ] Worker leasing and dead-letter promotion execution
 
 ## P3 — Calendar and contacts sync
 - [ ] Google Calendar sync tokens
