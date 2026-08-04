@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "secrets": "node scripts/generate-secrets.mjs",
     "check:env": "node scripts/check-env.mjs",
-    "validate": "npm run check:env && npm run typecheck && npm run lint && npm run build"
+    "check:migrations": "node scripts/check-migrations.mjs",
+    "validate": "npm run check:migrations && npm run check:env && npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.3",
