@@ -53,7 +53,17 @@
 - [x] Cross-account write rejection tests
 - [x] GitHub Actions validation on branch head
 - [ ] Live Supabase migration and integration validation
-- [ ] Worker leasing and dead-letter promotion execution
+
+### P2D — Retry worker and dead-letter operations — VALIDATION PENDING
+- [x] Atomic retry claiming with row locking and lease expiry
+- [x] Stable worker ownership checks
+- [x] Bounded exponential backoff
+- [x] Maximum-attempt enforcement
+- [x] Owner-visible dead-letter persistence
+- [x] Service-role-only claim function
+- [x] Deterministic worker transition tests
+- [ ] GitHub Actions validation on branch head
+- [ ] Live scheduled worker deployment
 
 ## P3 — Calendar and contacts sync
 - [ ] Google Calendar sync tokens
