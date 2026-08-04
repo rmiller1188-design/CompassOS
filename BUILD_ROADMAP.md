@@ -1,74 +1,47 @@
 # CompassOS Production Build Roadmap
 
 ## P0 — Secure account foundation — REVIEWABLE
-- [x] Dedicated CompassOS repository
-- [x] Read-only Google and Microsoft scope manifests
-- [x] OAuth state and PKCE primitives
-- [x] Authenticated token-envelope encryption
-- [x] Supabase account/token/cursor/action/audit schema
-- [x] RLS ownership policies and private token schema
-- [x] Pagination, retry, and cursor-cycle protections
-- [x] Normalized message and event contracts
-- [x] Explicit outbound approval state machine
-- [x] Dependency-free unit tests
+- [x] Read-only provider scopes, PKCE/state, token-envelope encryption
+- [x] Supabase account/token/cursor/action/audit schema and RLS
+- [x] Pagination, retry, normalization, and outbound approval primitives
 
 ## P1 — Provider OAuth routes — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] Google and Microsoft provider protocol runtime
-- [x] Authenticated authorization-start and callback orchestration
-- [x] Encrypted PKCE persistence and single-use state
-- [x] Refresh locking, rotation, reauthorization, disconnect, and audit
+- [x] Google and Microsoft authorization, callback, refresh, rotation, disconnect, and audit orchestration
 - [ ] Live provider credential validation
 - [ ] Live Supabase adapter integration test
 
-## P2 — Incremental communication sync — IN PROGRESS
+## P2 — Incremental communication sync
 ### P2A — Provider-neutral mail sync core — REVIEWABLE
-- [x] Bootstrap versus incremental cursor selection
-- [x] Bounded pagination and cursor-cycle rejection
-- [x] Normalized message upsert boundary
-- [x] Terminal checkpoint persistence only after page completion
-- [x] Rate-limit/transient/auth failure classification
-- [x] Reauthorization transition on expired credentials
-- [x] Sync-run audit contract and dependency-free tests
-- [x] GitHub Actions validation on branch head
+- [x] Bootstrap/incremental orchestration, bounded pagination, terminal checkpointing, failure classification
 
 ### P2B — Gmail and Microsoft mail protocol adapters — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] Gmail full bootstrap pagination
-- [x] Gmail history-based incremental sync
-- [x] Gmail metadata normalization and history checkpointing
-- [x] Microsoft Graph message delta sync
-- [x] Opaque Graph nextLink/deltaLink continuation
-- [x] Provider retry-after propagation
-- [x] Deterministic provider mock tests
-- [ ] Live Gmail mailbox validation
-- [ ] Live Microsoft 365 mailbox validation
+- [x] Gmail history synchronization and Microsoft Graph message delta synchronization
+- [ ] Live Gmail and Microsoft 365 mailbox validation
 
 ### P2C — Supabase mail persistence — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] Account-bound Supabase store adapter
-- [x] Message and derived thread upserts
-- [x] Provider-specific cursor persistence
-- [x] Sync-run records
-- [x] Retry queue persistence
-- [x] Reauthorization account transition
-- [x] Owner-read RLS and service-role-only ingestion boundary
-- [x] Cross-account write rejection tests
-- [x] GitHub Actions validation on branch head
+- [x] Account-bound message/thread/cursor/sync/retry persistence and owner-read RLS
 - [ ] Live Supabase migration and integration validation
 
-### P2D — Retry worker and dead-letter operations — VALIDATION PENDING
-- [x] Atomic retry claiming with row locking and lease expiry
-- [x] Stable worker ownership checks
-- [x] Bounded exponential backoff
-- [x] Maximum-attempt enforcement
-- [x] Owner-visible dead-letter persistence
-- [x] Service-role-only claim function
-- [x] Deterministic worker transition tests
-- [ ] GitHub Actions validation on branch head
+### P2D — Retry worker and dead-letter operations — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Atomic retry claiming, worker leases, bounded backoff, attempt limits, and dead-letter visibility
+- [x] GitHub Actions validation on branch head
 - [ ] Live scheduled worker deployment
 
-## P3 — Calendar and contacts sync
-- [ ] Google Calendar sync tokens
-- [ ] Microsoft calendar delta sync
-- [ ] Google and Microsoft contacts
+## P3 — Calendar and contacts sync — IN PROGRESS
+### P3A — Google and Microsoft calendar incremental sync — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Provider-neutral calendar synchronization orchestration
+- [x] Google Calendar bootstrap, page tokens, and sync tokens
+- [x] Microsoft calendarView delta, nextLink, and deltaLink handling
+- [x] Normalized event mapping and terminal checkpoint guarantees
+- [x] Deterministic provider and orchestration tests
+- [x] GitHub Actions validation on branch head
+- [ ] Live Google and Microsoft calendar validation
+- [ ] Supabase event persistence integration
+
+### P3B — Contacts and meeting context
+- [ ] Google People incremental contacts
+- [ ] Microsoft contacts delta synchronization
+- [ ] Contact identity resolution
 - [ ] Meeting-context graph
 
 ## P4 — Attention and memory
