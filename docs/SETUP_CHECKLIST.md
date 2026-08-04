@@ -21,13 +21,15 @@ Open the Supabase SQL Editor and run each file from the `m26-connected-accounts`
 3. [ ] `supabase/migrations/003_m26_rls_storage.sql`
 4. [ ] `supabase/migrations/004_m26_security_hardening.sql`
 5. [ ] `supabase/migrations/005_m26_atomic_workspace_operations.sql`
+6. [ ] `supabase/migrations/006_m26_sync_leases.sql`
 
-After migration 5:
+After migration 6:
 
 - [ ] `public.workspaces` exists.
 - [ ] Storage bucket `compass-files` exists and is private.
 - [ ] Browser roles cannot select `public.provider_credentials`.
 - [ ] The two server-only workspace RPCs exist.
+- [ ] `sync_runs_one_active_per_connection_idx` exists.
 
 ## C. Application secrets
 
@@ -136,18 +138,20 @@ Account A:
 - [ ] Disconnect one provider and confirm imported data remains.
 - [ ] Confirm future sync is blocked while disconnected.
 - [ ] Reconnect the same account and confirm sync resumes.
+- [ ] Start two sync requests together and confirm the second reports that a sync is already running.
 
 ## I. Go-live gate
 
 - [ ] Node 22 typecheck passes.
 - [ ] ESLint passes.
 - [ ] Next.js production build passes.
-- [ ] Supabase migrations 001–005 are present in production.
+- [ ] Supabase migrations 001–006 are present in production.
 - [ ] Google test authorization passes.
 - [ ] Microsoft test authorization passes.
 - [ ] Two-account privacy test passes.
 - [ ] Private/shared file test passes.
 - [ ] Credential-table browser access is denied.
+- [ ] Concurrent provider sync is blocked per connection.
 - [ ] Rollback to the static service remains available.
 
 Only after every gate passes should the M26 pull request be marked ready or merged.
