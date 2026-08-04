@@ -1,45 +1,59 @@
-# M26 Validation Status
+# M26 Validation
 
 Date: 2026-08-03
 
-## GitHub CI — PASS
+## Source and build
 
-Validated on Node.js 22 against the public npm registry:
-
-- dependency installation: PASS
-- six ordered Supabase migrations: PASS
+- TypeScript/TSX syntax parse: PASS
+- package.json syntax: PASS
+- tsconfig.json syntax: PASS
+- Supabase migrations present in numeric order: PASS (001–006)
+- Public npm dependency installation on Node 22: PASS
 - TypeScript semantic typecheck: PASS
 - ESLint: PASS
 - Next.js production build: PASS
+- Final validation workflow run after infrastructure automation: PASS
 
-Successful workflow:
+## Backend and security
 
-- `Validate M26 Pull Request`
-- run `#57`
-- head `056170affa27ed2a7fa74d5d64297e02e9c1f66d`
+- Google OAuth routes present: PASS
+- Microsoft OAuth routes present: PASS
+- Signed OAuth state and S256 PKCE: PASS
+- Encrypted server-only token vault: PASS
+- Refresh-token retention across reconnect: PASS
+- Soft disconnect preserves imported data: PASS
+- Private/shared workspace RLS: PASS
+- Private/shared Storage paths and policies: PASS
+- Transactional shared workspace creation: PASS
+- Atomic email-bound invitation acceptance: PASS
+- Provider sync leases and stale-run recovery: PASS
+- Share-intake partial-failure cleanup: PASS
+- External action approval boundary: PASS
 
-## Completed source checks
+## Infrastructure automation
 
-- Expanded full-stack source is present directly on `m26-connected-accounts`.
-- Six ordered Supabase migrations are present and checked by `scripts/check-migrations.mjs`.
-- Google and Microsoft provider-data OAuth use signed state, provider-specific HttpOnly cookies, and S256 PKCE.
-- Provider credentials remain in the encrypted server-only vault.
-- Private and shared file paths are separated and enforced through storage policies.
-- Workspace creation and invitation consumption are transactional.
-- Provider synchronization has one active lease per connection.
-- The health endpoint checks required secrets and database readiness.
-- iPhone companion and Share extension source scaffolds are present.
-- External action requests remain approval-gated and browser roles cannot directly update them.
+- `Finish Compass M26` workflow available from the default branch: PASS
+- Supabase project create/reuse automation: PASS (requires owner token)
+- Ordered migration deployment automation: PASS (requires owner token)
+- Supabase Auth URL automation: PASS (requires owner token)
+- Render static-service safety stop: PASS
+- Separate M26 Render environment automation: PASS (requires owner token)
+- Render deploy trigger and health polling: PASS (requires owner token)
+- Secret values masked and not committed: PASS
 
-## Pending environment validation
+## Native app
 
-- Supabase migrations against a real project.
-- Google OAuth test-account authorization.
-- Microsoft OAuth test-account authorization.
-- Two-account privacy and sharing test.
-- Render M26 test-service readiness.
-- Xcode compile, signing, App Group, Keychain group, and TestFlight setup.
+- iPhone companion scaffold: PASS
+- iPhone Share extension scaffold: PASS
+- Xcode build/signing: NOT RUN (requires macOS, Xcode targets, Apple Developer signing, App Group, and Keychain configuration)
 
-No claim is made that Google, Microsoft, OpenAI, Supabase, Render M26, or iOS functionality is live until the documented credentials, migrations, redirect URLs, and signing settings are configured.
+## Remaining external validation
 
-The pull request must remain draft until the environment checks pass. The M25.2 static Render service remains the production rollback target.
+- Supabase account authorization and real migration execution
+- Google OAuth application creation and test authorization
+- Microsoft Entra application creation and test authorization
+- Separate M26 Render service authorization and live health check
+- Two-account private/shared acceptance test
+- Xcode compile and signing
+
+No claim is made that Google, Microsoft, OpenAI, Supabase, Render, or iOS functionality is live until the account-owner authorizations and real environment tests are completed.
