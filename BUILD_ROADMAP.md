@@ -24,14 +24,14 @@
 - [x] GitHub Actions validation
 - [ ] Live calendar and Supabase event validation
 
-### P3B — Contacts incremental sync — VALIDATION PENDING
+### P3B — Contacts incremental sync — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Provider-neutral contact synchronization orchestration
 - [x] Google People connections pagination and sync tokens
 - [x] Microsoft Graph contacts delta continuation
 - [x] Normalized contact contract including deletions
 - [x] Terminal-only checkpoint advancement and cursor-cycle protection
 - [x] Deterministic provider and orchestration tests
-- [ ] GitHub Actions validation on branch head
+- [x] GitHub Actions validation on branch head
 - [ ] Supabase contact persistence and identity resolution
 - [ ] Live Google and Microsoft contacts validation
 
