@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/**'
       - 'supabase/**'
+      - 'scripts/**'
       - 'ios/**'
       - 'package.json'
       - 'tsconfig.json'
@@ -49,6 +50,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Validate migration set
+        run: node scripts/check-migrations.mjs
 
       - name: Use public npm registry
         run: npm config set registry https://registry.npmjs.org/
