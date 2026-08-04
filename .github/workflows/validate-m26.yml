@@ -1,0 +1,70 @@
+name: Validate M26 Pull Request
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - 'ios/**'
+      - 'package.json'
+      - 'tsconfig.json'
+      - 'next.config.mjs'
+      - 'proxy.ts'
+      - 'render.yaml'
+      - '.github/workflows/validate-m26.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: validate-m26-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
+      SUPABASE_SERVICE_ROLE_KEY: example-service-role
+      TOKEN_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      OAUTH_STATE_SECRET: example-oauth-secret-for-build-only
+      GOOGLE_CLIENT_ID: example
+      GOOGLE_CLIENT_SECRET: example
+      MICROSOFT_CLIENT_ID: example
+      MICROSOFT_CLIENT_SECRET: example
+      MICROSOFT_TENANT: common
+      OPENAI_API_KEY: example
+      OPENAI_MODEL: gpt-5
+
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v4
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate migration set
+        run: node scripts/check-migrations.mjs
+
+      - name: Use public npm registry
+        run: npm config set registry https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Production build
+        run: npm run build
