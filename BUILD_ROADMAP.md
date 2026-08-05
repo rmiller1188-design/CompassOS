@@ -53,8 +53,21 @@
 - [ ] Live consent upgrade and provider-send validation
 - [ ] Live Supabase migration and encrypted payload-store validation
 
-### P5C — Calendar approval actions and UX
-- [ ] Calendar action opt-in scopes
-- [ ] Approval UI with payload diff on phone and desktop
-- [ ] Event create/update/respond execution adapters
-- [ ] Accessibility and EdgePilot-AI UX benchmark pass
+### P5C — Calendar approval and execution — VALIDATION PENDING
+- [x] Separate Google and Microsoft calendar-write consent enforcement
+- [x] Canonical create, update, and response approval payloads
+- [x] Deterministic payload hashes and field-level approval diffs
+- [x] Google Calendar create, patch, and attendee-response adapter
+- [x] Microsoft Graph create, patch, accept, tentative, and decline adapter
+- [x] Ownership, state, consent, approval-hash, and idempotency enforcement
+- [x] Calendar provider receipt fields and owner-read RLS extension
+- [x] Deterministic validation, adapter, secret-isolation, failure, and idempotency tests
+- [ ] GitHub Actions validation on branch head
+- [ ] Live calendar-write consent and provider execution validation
+- [ ] Live Supabase receipt migration validation
+
+### P5D — Approval command-center UX
+- [ ] Phone-first approval inbox with clear payload diffs
+- [ ] Desktop split-view approval workflow
+- [ ] Accessibility, keyboard navigation, and destructive-action safeguards
+- [ ] EdgePilot-AI benchmark and responsive interaction pass
