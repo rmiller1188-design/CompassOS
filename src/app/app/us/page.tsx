@@ -15,11 +15,17 @@ type SharedWorkspace = {
 export default async function UsPage() {
   const user = await requireUser();
   const admin = createAdminClient();
-  const { data: memberships } = await admin.from("workspace_members").select("role,workspaces(id,name,kind,created_by)").eq("user_id", user.id);
+  const { data: memberships } = await admin
+    .from("workspace_members")
+    .select("role,workspaces(id,name,kind,created_by)")
+    .eq("user_id", user.id);
 
-  const shared = (memberships || [])
-    .flatMap(row => row.workspaces)
-    .find(workspace => workspace.kind === "shared") as SharedWorkspace | undefined;
+  const availableWorkspaces = (memberships || []).flatMap(row => {
+    const joined = row.workspaces as SharedWorkspace | SharedWorkspace[] | null;
+    if (!joined) return [];
+    return Array.isArray(joined) ? joined : [joined];
+  });
+  const shared = availableWorkspaces.find(workspace => workspace.kind === "shared");
 
   if (!shared) {
     return (
@@ -46,8 +52,8 @@ export default async function UsPage() {
         <p className="muted">Only selected items live here. Both members can revoke shared access.</p>
       </section>
       <section className="card span-4"><h2>Invite partner</h2><InvitePartnerForm workspaceId={shared.id}/></section>
-      <section className="card span-6"><h2>Shared schedule</h2><p className="muted">Shared events and availability windows will appear here.</p></section>
-      <section className="card span-6"><h2>Shared tasks</h2><p className="muted">Household follow-ups, bills, and plans stay separate from private profiles.</p></section>
+      <section className="card span-6"><h2>Shared schedule</h2><p className="muted">Shared events and availability windows are not implemented yet.</p></section>
+      <section className="card span-6"><h2>Shared tasks</h2><p className="muted">Shared household tasks are not implemented yet.</p></section>
     </div>
   );
 }
