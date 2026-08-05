@@ -37,11 +37,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Validate repair script
-        run: node --check scripts/repair-render-m26.mjs
+      - name: Validate provision script
+        run: node --check scripts/provision-m26.mjs
 
       - name: Repair Render configuration and deploy
-        run: node scripts/repair-render-m26.mjs
+        run: node scripts/provision-m26.mjs
         env:
           M26_TARGET_BRANCH: ${{ inputs.target_branch }}
           M26_APP_URL: ${{ inputs.app_url }}
