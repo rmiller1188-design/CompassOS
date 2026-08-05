@@ -36,7 +36,7 @@
 - [x] Encrypted action persistence and tamper-evident audit chains
 - [ ] Live provider-write consent, provider execution, and Supabase validation
 
-## P6 — Reliable command-center execution — IN PROGRESS
+## P6 — Reliable command-center execution — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 ### P6A — Atomic action queue and execution leases — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Atomic oldest-first approved-action claiming with `FOR UPDATE SKIP LOCKED`
 - [x] Service-role-only worker lease acquisition and recovery RPCs
@@ -57,7 +57,17 @@
 - [x] Deterministic UX, safety, escaping, and accessibility-model tests
 - [ ] Browser automation, physical-device, screen-reader, and live Supabase validation
 
-### P6C — Operational observability and recovery
-- [ ] Structured sync, AI, approval, and execution health model
-- [ ] User-safe provider reconnect and retry surfaces
-- [ ] Redacted diagnostics and support export
+### P6C — Operational observability and recovery — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Structured sync, AI, approval, and execution health model
+- [x] Latest-per-subsystem health aggregation and blocked/degraded precedence
+- [x] User-safe retry, reconnect, review, and no-op recovery guidance
+- [x] Recursive secret, bearer-token, and email redaction
+- [x] Pseudonymized support export with optional account-ID inclusion
+- [x] Deterministic health, recovery, redaction, export, and invalid-input tests
+- [ ] Live telemetry ingestion, provider reconnect UX, and support workflow validation
+
+## P7 — Production integration and evaluation — PLANNED
+- [ ] Apply and verify Supabase migrations with service-role boundaries
+- [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
+- [ ] Run user-approved OpenAI quality, latency, and cost evaluation
+- [ ] Validate browser, phone, desktop, accessibility, and worker recovery behavior
