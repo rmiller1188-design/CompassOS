@@ -1,0 +1,49 @@
+name: Repair Compass M26 Render
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: M26 branch to deploy
+        required: true
+        default: m26-connected-accounts
+        type: string
+      app_url:
+        description: Public M26 URL
+        required: true
+        default: https://compass-os-m26.onrender.com
+        type: string
+
+concurrency:
+  group: repair-compass-m26-render
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    name: Repair and verify Render
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout M26 source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_branch }}
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate repair script
+        run: node --check scripts/repair-render-m26.mjs
+
+      - name: Repair Render configuration and deploy
+        run: node scripts/repair-render-m26.mjs
+        env:
+          M26_TARGET_BRANCH: ${{ inputs.target_branch }}
+          M26_APP_URL: ${{ inputs.app_url }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_M26_SERVICE_ID: ${{ secrets.RENDER_M26_SERVICE_ID }}
