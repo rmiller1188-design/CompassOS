@@ -39,14 +39,19 @@
 - [x] Deterministic draft, provenance, hashing, diff, and approval-integrity tests
 - [x] GitHub Actions validation on branch head
 - [ ] Live OpenAI reply-quality evaluation
-- [ ] Supabase encrypted outbound payload persistence
 
-### P5B — Provider execution and receipts
-- [ ] Mail send opt-in scopes and separate consent upgrade
-- [ ] Gmail reply execution adapter
-- [ ] Microsoft Graph reply execution adapter
-- [ ] Pre-execution approval/hash verification
-- [ ] Provider receipt and failure audit persistence
+### P5B — Provider execution and receipts — VALIDATION PENDING
+- [x] Mail-send opt-in scope enforcement separate from read consent
+- [x] Gmail reply execution adapter
+- [x] Microsoft Graph reply execution adapter
+- [x] Pre-execution ownership, consent, state, and approval-hash verification
+- [x] Idempotency receipt lookup preventing duplicate provider execution
+- [x] Provider receipt and failure audit contract
+- [x] Supabase receipt schema with owner-read RLS and service-role-only writes
+- [x] Deterministic consent, adapter, mutation, failure, and idempotency tests
+- [ ] GitHub Actions validation on branch head
+- [ ] Live consent upgrade and provider-send validation
+- [ ] Live Supabase migration and encrypted payload-store validation
 
 ### P5C — Calendar approval actions and UX
 - [ ] Calendar action opt-in scopes
