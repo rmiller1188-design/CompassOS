@@ -29,56 +29,26 @@
 - [x] User-controlled memory and tenant-isolated semantic search
 - [ ] Live OpenAI evaluation and Supabase pgvector validation
 
-## P5 — Approval-gated actions — IN PROGRESS
-### P5A — Reply drafting and approval integrity — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] Server-side OpenAI reply drafting with strict structured output and `store: false`
-- [x] Source-message provenance validation
-- [x] Normalized recipients and immutable canonical payload hashing
-- [x] Reviewable payload diff generation
-- [x] Approval invalidation after any payload change
-- [x] Deterministic draft, provenance, hashing, diff, and approval-integrity tests
-- [x] GitHub Actions validation on branch head
-- [ ] Live OpenAI reply-quality evaluation
+## P5 — Approval-gated actions — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Reply drafting, canonical hashing, reviewable diffs, and approval invalidation
+- [x] Approval-gated Gmail and Microsoft reply execution with receipts
+- [x] Approval-gated Google and Microsoft calendar execution
+- [x] Encrypted action persistence and tamper-evident audit chains
+- [ ] Live provider-write consent, provider execution, and Supabase validation
 
-### P5B — Provider execution and receipts — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] Mail-send opt-in scope enforcement separate from read consent
-- [x] Gmail reply execution adapter
-- [x] Microsoft Graph reply execution adapter
-- [x] Pre-execution ownership, consent, state, and approval-hash verification
-- [x] Idempotency receipt lookup preventing duplicate provider execution
-- [x] Provider receipt and failure audit contract
-- [x] Supabase receipt schema with owner-read RLS and service-role-only writes
-- [x] Deterministic consent, adapter, mutation, failure, and idempotency tests
-- [x] GitHub Actions validation on branch head
-- [ ] Live consent upgrade and provider-send validation
+## P6 — Reliable command-center execution — IN PROGRESS
+### P6A — Atomic action queue and execution leases — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Atomic oldest-first approved-action claiming with `FOR UPDATE SKIP LOCKED`
+- [x] Service-role-only worker lease acquisition and recovery RPCs
+- [x] Payload hash and payload revision binding on every execution lease
+- [x] Lease heartbeat with worker ownership and expiry enforcement
+- [x] Expired lease recovery to a non-executable failed state
+- [x] Provider receipt provenance on successful terminal transitions
+- [x] Structured retry metadata on failed transitions
+- [x] Deterministic lease, mutation, expiry, claim, success, and failure tests
+- [ ] Live Supabase concurrency, crash recovery, and provider execution validation
 
-### P5C — Calendar approval and execution — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] Separate Google and Microsoft calendar-write consent enforcement
-- [x] Canonical create, update, and response approval payloads
-- [x] Deterministic payload hashes and field-level approval diffs
-- [x] Google Calendar create, patch, and attendee-response adapter
-- [x] Microsoft Graph create, patch, accept, tentative, and decline adapter
-- [x] Ownership, state, consent, approval-hash, and idempotency enforcement
-- [x] Calendar provider receipt fields and owner-read RLS extension
-- [x] Deterministic validation, adapter, secret-isolation, failure, and idempotency tests
-- [x] GitHub Actions validation on branch head
-- [ ] Live calendar-write consent and provider execution validation
-
-### P5D — Encrypted action persistence and audit integrity — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
-- [x] User/account-bound outbound action store
-- [x] AES-256-GCM payload envelopes with action-specific authenticated context
-- [x] Separate payload revision and state revision tracking
-- [x] Optimistic concurrency on edits and state transitions
-- [x] Approval invalidation after encrypted payload replacement
-- [x] Tamper-evident per-action audit hash chains
-- [x] Append-only audit-event database enforcement
-- [x] Owner-read and service-role-only action mutation boundary
-- [x] Deterministic encryption, context-binding, tamper, and audit-chain tests
-- [x] GitHub Actions validation on branch head
-- [ ] Live Supabase migration and service-role integration validation
-
-## P6 — Command-center product surface
-### P6A — Approval command-center UX
+### P6B — Approval command-center UX
 - [ ] Phone-first approval inbox with clear payload diffs
 - [ ] Desktop split-view approval workflow
 - [ ] Accessibility, keyboard navigation, and destructive-action safeguards
