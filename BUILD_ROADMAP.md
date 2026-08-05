@@ -48,8 +48,16 @@
 - [x] Deterministic lease, mutation, expiry, claim, success, and failure tests
 - [ ] Live Supabase concurrency, crash recovery, and provider execution validation
 
-### P6B — Approval command-center UX
-- [ ] Phone-first approval inbox with clear payload diffs
-- [ ] Desktop split-view approval workflow
-- [ ] Accessibility, keyboard navigation, and destructive-action safeguards
-- [ ] EdgePilot-AI benchmark and responsive interaction pass
+### P6B — Approval command-center UX — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Phone-first approval inbox with clear payload diffs
+- [x] Desktop split-view approval workflow
+- [x] Accessibility, keyboard navigation, and destructive-action safeguards
+- [x] Responsive interaction pass benchmarked against EdgePilot-AI workflow goals
+- [x] Tenant filtering and payload hash/revision binding on decision requests
+- [x] Deterministic UX, safety, escaping, and accessibility-model tests
+- [ ] Browser automation, physical-device, screen-reader, and live Supabase validation
+
+### P6C — Operational observability and recovery
+- [ ] Structured sync, AI, approval, and execution health model
+- [ ] User-safe provider reconnect and retry surfaces
+- [ ] Redacted diagnostics and support export
