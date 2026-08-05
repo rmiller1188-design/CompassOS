@@ -69,7 +69,7 @@ begin
 
   return query
   with candidates as (
-    select id
+    select id, lease_owner
     from public.outbound_actions
     where status = 'executing' and lease_expires_at <= now()
     order by lease_expires_at asc, id asc
@@ -85,7 +85,7 @@ begin
         updated_at = now()
     from candidates c
     where a.id = c.id
-    returning a.id, a.lease_owner
+    returning a.id, c.lease_owner
   )
   select recovered.id, recovered.lease_owner, now() from recovered;
 end;
