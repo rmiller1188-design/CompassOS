@@ -11,6 +11,15 @@ const summary = line => {
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${line}\n`);
 };
 
+function normalizeRenderApiKey(value) {
+  let normalized = value.trim();
+  if ((normalized.startsWith('"') && normalized.endsWith('"')) || (normalized.startsWith("'") && normalized.endsWith("'"))) {
+    normalized = normalized.slice(1, -1).trim();
+  }
+  normalized = normalized.replace(/^Bearer\s+/i, "").trim();
+  return normalized;
+}
+
 async function jsonRequest(url, { token, method = "GET", body } = {}) {
   const response = await fetch(url, {
     method,
@@ -44,13 +53,25 @@ async function waitFor(url, expectedStatus, attempts, delayMs) {
 }
 
 try {
-  const token = required("RENDER_API_KEY");
+  const token = normalizeRenderApiKey(required("RENDER_API_KEY"));
   const serviceId = required("RENDER_M26_SERVICE_ID");
   const branch = optional("M26_TARGET_BRANCH") || "m26-connected-accounts";
   const appUrl = (optional("M26_APP_URL") || "https://compass-os-m26.onrender.com").replace(/\/$/, "");
 
+  if (!token) throw new Error("RENDER_API_KEY is empty after removing quotes or a Bearer prefix.");
   console.log(`::add-mask::${token}`);
   summary("# Compass M26 Render repair");
+
+  try {
+    await jsonRequest("https://api.render.com/v1/users", { token });
+    summary("- Render API authentication: `valid`");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("(401)")) {
+      throw new Error("Render rejected RENDER_API_KEY. Store only the raw API key value in GitHub—without 'Bearer ', quotation marks, the key name, an SSH key, or a service ID.");
+    }
+    throw error;
+  }
 
   const current = await jsonRequest(`https://api.render.com/v1/services/${serviceId}`, { token });
   const service = current.service || current;
