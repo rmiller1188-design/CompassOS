@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -18,7 +19,7 @@ export default async function CalendarPage() {
       <section className="card page-intro">
         <p className="eyebrow">Combined private view</p>
         <h1>Your calendar</h1>
-        <p className="muted">This screen combines your connected calendars. Sharing into Us is a separate explicit action.</p>
+        <p className="muted">This screen combines connected Google and Microsoft calendars. Sharing into Us is a separate feature and is not implemented yet.</p>
       </section>
       <section className="card">
         <div className="event-list">
@@ -30,10 +31,14 @@ export default async function CalendarPage() {
                 <p>{new Date(event.starts_at).toLocaleString()} — {new Date(event.ends_at).toLocaleString()}</p>
                 <small>{event.location || (event.all_day ? "All day" : "No location")}</small>
               </div>
-              <button className="button secondary" disabled>Share to Us</button>
+              <button className="button secondary" disabled title="Calendar sharing is not implemented yet">Share to Us</button>
             </article>
           )) : (
-            <div className="empty-inline"><b>No calendar events imported</b><p>Connect Google or Microsoft and run a sync.</p></div>
+            <div className="empty-inline">
+              <b>No calendar events imported</b>
+              <p>Connect Google or Microsoft and run the first sync.</p>
+              <Link className="button primary" href="/app/settings/connections">Connect or sync an account</Link>
+            </div>
           )}
         </div>
       </section>
