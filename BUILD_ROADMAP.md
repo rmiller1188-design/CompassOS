@@ -53,7 +53,7 @@
 - [ ] Live consent upgrade and provider-send validation
 - [ ] Live Supabase migration and encrypted payload-store validation
 
-### P5C — Calendar approval and execution — VALIDATION PENDING
+### P5C — Calendar approval and execution — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Separate Google and Microsoft calendar-write consent enforcement
 - [x] Canonical create, update, and response approval payloads
 - [x] Deterministic payload hashes and field-level approval diffs
@@ -62,7 +62,7 @@
 - [x] Ownership, state, consent, approval-hash, and idempotency enforcement
 - [x] Calendar provider receipt fields and owner-read RLS extension
 - [x] Deterministic validation, adapter, secret-isolation, failure, and idempotency tests
-- [ ] GitHub Actions validation on branch head
+- [x] GitHub Actions validation on branch head
 - [ ] Live calendar-write consent and provider execution validation
 - [ ] Live Supabase receipt migration validation
 
