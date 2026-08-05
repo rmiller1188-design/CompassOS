@@ -66,7 +66,16 @@
 - [x] Deterministic health, recovery, redaction, export, and invalid-input tests
 - [ ] Live telemetry ingestion, provider reconnect UX, and support workflow validation
 
-## P7 — Production integration and evaluation — PLANNED
+## P7 — Production integration and evaluation — IN PROGRESS
+### P7A — Production readiness gates — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Fail-closed runtime configuration inspection for Supabase, provider, and OpenAI dependencies
+- [x] Detection of secrets exposed through public client environment prefixes
+- [x] Deterministic ordered migration manifest with duplicate detection and SHA-256 evidence
+- [x] Explicit passed, blocked, and failed validation dispositions
+- [x] Secret-value exclusion from readiness reports
+- [x] Deterministic runtime, migration, privacy, and blocker-classification tests
+- [ ] Apply migrations and run live RLS, OAuth, sync, OpenAI, browser, and worker validation
+
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
 - [ ] Run user-approved OpenAI quality, latency, and cost evaluation
