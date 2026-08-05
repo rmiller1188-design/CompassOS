@@ -24,7 +24,8 @@ export default async function DashboardPage() {
     admin.from("workspace_members").select("workspace_id,workspaces(id,name,kind)").eq("user_id", user.id)
   ]);
 
-  const healthy = (connections.data || []).filter(connection => connection.status === "healthy").length;
+  const connectionRows = connections.data || [];
+  const healthy = connectionRows.filter(connection => connection.status === "healthy").length;
   const nextEvent = events.data?.[0];
   const hasSharedWorkspace = (sharedWorkspaces.data || []).some(row => {
     const joined = row.workspaces as JoinedWorkspace | JoinedWorkspace[] | null;
@@ -35,33 +36,53 @@ export default async function DashboardPage() {
 
   return (
     <div className="dashboard-grid">
+      {!connectionRows.length && (
+        <section className="card span-12">
+          <p className="eyebrow">First-run setup</p>
+          <h1>Connect one account to activate Compass</h1>
+          <p className="muted">The inbox, calendar, people search, and daily summary remain empty until Google or Microsoft is connected and the first sync completes.</p>
+          <div className="button-row">
+            <Link className="button primary" href="/app/settings/connections">Connect Google or Microsoft</Link>
+            <Link className="button secondary" href="/app/files">Test private file upload</Link>
+            <Link className="button secondary" href="/app/us">Create an Us workspace</Link>
+          </div>
+        </section>
+      )}
+      {!!connectionRows.length && !healthy && (
+        <section className="card span-12">
+          <p className="eyebrow">Connection needs attention</p>
+          <h2>Run the first sync or reconnect the account</h2>
+          <p className="muted">Compass has a provider record, but no healthy connection is currently supplying data.</p>
+          <Link className="button primary" href="/app/settings/connections">Open account health</Link>
+        </section>
+      )}
       <DailyBrief workspaceId={profile.personal_workspace_id} />
       <section className="card metric-card span-4">
         <span className="metric-label">Connected accounts</span>
         <b className="metric-value">{healthy}</b>
-        <p>{healthy ? "Google or Microsoft connections are healthy." : "Connect your first account."}</p>
+        <p>{healthy ? "Google or Microsoft connections are healthy." : "No healthy provider connection yet."}</p>
         <Link className="text-link" href="/app/settings/connections">Manage accounts</Link>
       </section>
       <section className="card span-6">
         <div className="section-heading"><div><p className="eyebrow">Messages</p><h2>Recent attention</h2></div><span className="pill">{unread.count || 0} imported</span></div>
-        <p className="muted">Synced email and selected phone-share items appear here. No provider can send without a separate approval scope.</p>
+        <p className="muted">Synced email and selected phone-share items appear here. Conversation detail, drafting, and send approval are not implemented yet.</p>
         <Link className="button secondary" href="/app/messages">Open messages</Link>
       </section>
       <section className="card span-6">
         <div className="section-heading"><div><p className="eyebrow">Calendar</p><h2>{nextEvent ? nextEvent.title : "No upcoming event"}</h2></div>{nextEvent && <span className="pill">{new Date(nextEvent.starts_at).toLocaleString()}</span>}</div>
-        <p className="muted">Your calendar remains private unless you explicitly share an event or availability window into Us.</p>
+        <p className="muted">Connected calendar events appear here. Sharing an event into Us is not implemented yet.</p>
         <Link className="button secondary" href="/app/calendar">Open calendar</Link>
       </section>
       <section className="card span-6">
         <p className="eyebrow">Us</p>
         <h2>Shared household space</h2>
-        <p className="muted">{hasSharedWorkspace ? "Your shared workspace is active." : "Invite your partner and create an Us workspace."}</p>
+        <p className="muted">{hasSharedWorkspace ? "Your shared workspace is active." : "Create an Us workspace and invite your partner."}</p>
         <Link className="button secondary" href="/app/us">Open Us</Link>
       </section>
       <section className="card span-6">
         <p className="eyebrow">Files</p>
-        <h2>Cloud file storage</h2>
-        <p className="muted">Photos, videos, PDFs, and documents are stored in private Supabase Storage with workspace-based access control.</p>
+        <h2>Private cloud file storage</h2>
+        <p className="muted">Private upload is functional. File preview, download, folders, and sharing controls are still pending.</p>
         <Link className="button secondary" href="/app/files">Open files</Link>
       </section>
     </div>
