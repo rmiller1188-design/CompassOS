@@ -2,7 +2,7 @@
 
 ## Review status
 
-Validation is pending on the final branch head. This milestone must remain draft until GitHub Actions completes successfully.
+**REVIEWABLE CORE MILESTONE.** GitHub Actions `Validate production core` run 184 completed successfully on branch head `8e4f6bf2964771d42b36b052949a427bd94dc976`. A final validation run is required on this documentation-updated review head before merge consideration.
 
 ## Scope
 
