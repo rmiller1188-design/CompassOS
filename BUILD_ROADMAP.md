@@ -40,7 +40,7 @@
 - [x] GitHub Actions validation on branch head
 - [ ] Live OpenAI reply-quality evaluation
 
-### P5B — Provider execution and receipts — VALIDATION PENDING
+### P5B — Provider execution and receipts — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Mail-send opt-in scope enforcement separate from read consent
 - [x] Gmail reply execution adapter
 - [x] Microsoft Graph reply execution adapter
@@ -49,7 +49,7 @@
 - [x] Provider receipt and failure audit contract
 - [x] Supabase receipt schema with owner-read RLS and service-role-only writes
 - [x] Deterministic consent, adapter, mutation, failure, and idempotency tests
-- [ ] GitHub Actions validation on branch head
+- [x] GitHub Actions validation on branch head
 - [ ] Live consent upgrade and provider-send validation
 - [ ] Live Supabase migration and encrypted payload-store validation
 
