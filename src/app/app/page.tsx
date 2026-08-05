@@ -5,6 +5,12 @@ import { DailyBrief } from "@/components/daily-brief";
 
 export const dynamic = "force-dynamic";
 
+type JoinedWorkspace = {
+  id?: string;
+  name?: string;
+  kind?: string;
+};
+
 export default async function DashboardPage() {
   const user = await requireUser();
   const admin = createAdminClient();
@@ -20,9 +26,12 @@ export default async function DashboardPage() {
 
   const healthy = (connections.data || []).filter(connection => connection.status === "healthy").length;
   const nextEvent = events.data?.[0];
-  const hasSharedWorkspace = (sharedWorkspaces.data || []).some(row =>
-    row.workspaces.some(workspace => workspace.kind === "shared")
-  );
+  const hasSharedWorkspace = (sharedWorkspaces.data || []).some(row => {
+    const joined = row.workspaces as JoinedWorkspace | JoinedWorkspace[] | null;
+    return Array.isArray(joined)
+      ? joined.some(workspace => workspace?.kind === "shared")
+      : joined?.kind === "shared";
+  });
 
   return (
     <div className="dashboard-grid">
