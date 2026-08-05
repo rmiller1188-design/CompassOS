@@ -64,7 +64,7 @@
 - [x] GitHub Actions validation on branch head
 - [ ] Live calendar-write consent and provider execution validation
 
-### P5D — Encrypted action persistence and audit integrity — VALIDATION PENDING
+### P5D — Encrypted action persistence and audit integrity — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] User/account-bound outbound action store
 - [x] AES-256-GCM payload envelopes with action-specific authenticated context
 - [x] Separate payload revision and state revision tracking
@@ -74,7 +74,7 @@
 - [x] Append-only audit-event database enforcement
 - [x] Owner-read and service-role-only action mutation boundary
 - [x] Deterministic encryption, context-binding, tamper, and audit-chain tests
-- [ ] GitHub Actions validation on branch head
+- [x] GitHub Actions validation on branch head
 - [ ] Live Supabase migration and service-role integration validation
 
 ## P6 — Command-center product surface
