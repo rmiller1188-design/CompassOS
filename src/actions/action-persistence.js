@@ -4,22 +4,18 @@ import { transitionOutboundAction } from "./approval.js";
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
-  if (value && typeof value === "object") {
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]));
-  }
+  if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]));
   return value;
 }
 
 export function hashActionPayload(payload) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new TypeError("Outbound payload must be an object");
-  }
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new TypeError("Outbound payload must be an object");
   return createHash("sha256").update(JSON.stringify(stable(payload))).digest("hex");
 }
 
-export function sealActionPayload({ payload, key, actionId, userId, accountId, actionType, revision = 1 }) {
+export function sealActionPayload({ payload, key, actionId, userId, accountId, actionType, payloadRevision = 1 }) {
   const payloadHash = hashActionPayload(payload);
-  const context = { purpose: "outbound_action", actionId, userId, accountId, actionType, revision, payloadHash };
+  const context = { purpose: "outbound_action", actionId, userId, accountId, actionType, payloadRevision, payloadHash };
   return { payloadHash, envelope: encryptTokenPayload(payload, key, context) };
 }
 
@@ -31,7 +27,7 @@ export function openActionPayload({ envelope, key, action }) {
     userId: action.userId,
     accountId: action.providerAccountId,
     actionType: action.actionType,
-    revision: action.revision,
+    payloadRevision: action.payloadRevision,
     payloadHash: action.payloadHash,
   };
   for (const [field, value] of Object.entries(expected)) {
@@ -51,6 +47,7 @@ export function buildChainedAuditEvent({ action, actorId = null, eventType, meta
     eventType,
     status: action.status,
     revision: action.revision,
+    payloadRevision: action.payloadRevision,
     payloadHash: action.payloadHash,
     metadata: stable(metadata),
     occurredAt: now.toISOString(),
@@ -76,6 +73,7 @@ function mapRow(row) {
     providerAccountId: row.account_id,
     actionType: row.action_type,
     payloadHash: row.payload_hash,
+    payloadRevision: row.payload_revision,
     status: row.status,
     revision: row.revision,
     approvedBy: row.approved_by,
@@ -109,7 +107,7 @@ export function createSupabaseOutboundActionStore({ client, userId, accountId, e
       action_id: event.actionId,
       actor_id: event.actorId,
       event_type: event.eventType,
-      metadata: { ...event.metadata, status: event.status, revision: event.revision, payloadHash: event.payloadHash },
+      metadata: { ...event.metadata, status: event.status, revision: event.revision, payloadRevision: event.payloadRevision, payloadHash: event.payloadHash },
       previous_event_hash: event.previousEventHash,
       event_hash: event.eventHash,
       occurred_at: event.occurredAt,
@@ -120,11 +118,11 @@ export function createSupabaseOutboundActionStore({ client, userId, accountId, e
   return {
     async createDraft({ id, actionType, payload }) {
       if (!id || !actionType) throw new TypeError("Action id and type are required");
-      const sealed = sealActionPayload({ payload, key: encryptionKey, actionId: id, userId, accountId, actionType, revision: 1 });
+      const sealed = sealActionPayload({ payload, key: encryptionKey, actionId: id, userId, accountId, actionType, payloadRevision: 1 });
       const timestamp = now().toISOString();
       const row = {
         id, user_id: userId, account_id: accountId, action_type: actionType,
-        payload_ciphertext: sealed.envelope, payload_hash: sealed.payloadHash,
+        payload_ciphertext: sealed.envelope, payload_hash: sealed.payloadHash, payload_revision: 1,
         status: "draft", revision: 1, created_at: timestamp, updated_at: timestamp,
       };
       assertResult(await client.from("outbound_actions").insert(row), "create outbound action");
@@ -143,13 +141,15 @@ export function createSupabaseOutboundActionStore({ client, userId, accountId, e
     async replaceDraftPayload(actionId, payload, expectedRevision) {
       const row = await loadRow(actionId);
       const action = mapRow(row);
-      if (!['draft', 'pending_approval', 'failed'].includes(action.status)) throw new Error("Terminal or executing actions cannot be edited");
+      if (!["draft", "pending_approval", "failed"].includes(action.status)) throw new Error("Terminal or executing actions cannot be edited");
       if (action.revision !== expectedRevision) throw new Error("Outbound action revision conflict");
       const revision = action.revision + 1;
-      const sealed = sealActionPayload({ payload, key: encryptionKey, actionId, userId, accountId, actionType: action.actionType, revision });
+      const payloadRevision = action.payloadRevision + 1;
+      const sealed = sealActionPayload({ payload, key: encryptionKey, actionId, userId, accountId, actionType: action.actionType, payloadRevision });
       const result = await client.from("outbound_actions").update({
         payload_ciphertext: sealed.envelope,
         payload_hash: sealed.payloadHash,
+        payload_revision: payloadRevision,
         status: "draft",
         revision,
         approved_by: null,
