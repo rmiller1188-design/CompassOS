@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
@@ -12,10 +13,36 @@ const nav = [
   ["/app/search", "⌕", "Search"]
 ] as const;
 
-export function AppShell({ children, displayName }: { children: React.ReactNode; displayName: string }) {
+type ThemeMode = "system" | "light" | "dark";
+type Accent = "violet" | "blue" | "green" | "orange" | "rose" | "graphite";
+
+function applyAppearance(mode: ThemeMode, accent: Accent) {
+  const root = document.documentElement;
+  const dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  root.dataset.themeMode = mode;
+  root.dataset.theme = dark ? "dark" : "light";
+  root.dataset.accent = accent;
+  localStorage.setItem("compass-theme-mode", mode);
+  localStorage.setItem("compass-accent", accent);
+}
+
+export function AppShell({ children, displayName, initialMode, initialAccent }: {
+  children: React.ReactNode;
+  displayName: string;
+  initialMode: ThemeMode;
+  initialAccent: Accent;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createBrowserSupabaseClient();
+
+  useEffect(() => {
+    applyAppearance(initialMode, initialAccent);
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const update = () => initialMode === "system" && applyAppearance(initialMode, initialAccent);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [initialMode, initialAccent]);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -34,7 +61,7 @@ export function AppShell({ children, displayName }: { children: React.ReactNode;
           })}
         </nav>
         <div className="sidebar-bottom">
-          <Link className="profile-chip" href="/app/settings/connections"><span className="avatar">{displayName.slice(0,1).toUpperCase()}</span><span><b>{displayName}</b><small>Private profile</small></span></Link>
+          <Link className="profile-chip" href="/app/settings"><span className="avatar">{displayName.slice(0,1).toUpperCase()}</span><span><b>{displayName}</b><small>Private profile</small></span></Link>
           <button className="text-button" onClick={signOut}>Sign out</button>
         </div>
       </aside>
@@ -42,7 +69,7 @@ export function AppShell({ children, displayName }: { children: React.ReactNode;
         <header className="topbar">
           <button className="icon-button" onClick={() => router.back()} aria-label="Back">‹</button>
           <div className="top-title"><b>{pageTitle(pathname)}</b><small>Private by default</small></div>
-          <div className="top-actions"><Link className="icon-button" href="/app/search">⌕</Link><Link className="icon-button" href="/app/settings/connections">⚙</Link></div>
+          <div className="top-actions"><Link className="icon-button" href="/app/search">⌕</Link><Link className="icon-button" href="/app/settings">⚙</Link></div>
         </header>
         <main className="page-content">{children}</main>
       </div>
