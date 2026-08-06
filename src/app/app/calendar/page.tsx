@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ShareEventToUsButton } from "@/components/share-event-to-us-button";
+import { EventUtilityActions } from "@/components/event-utility-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -83,11 +84,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       <section className="card page-intro">
         <p className="eyebrow">Combined private view</p>
         <h1>Your calendar</h1>
-        <p className="muted">Select an imported event to view its schedule, location, description, attendees, provider link, and sharing controls.</p>
+        <p className="muted">Select an imported event to view details, create a private follow-up, copy the schedule, open the provider event, or explicitly share it into Us.</p>
       </section>
       <div className="two-pane calendar-two-pane">
         <section className="card list-pane">
-          <div className="section-heading"><div><p className="eyebrow">Upcoming and recent</p><h2>Events</h2></div><span className="pill">{events.length}</span></div>
+          <div className="section-heading"><div><p className="eyebrow">Upcoming and recent</p><h2>Events</h2></div><span className="pill" title="Imported event count">{events.length}</span></div>
           <div className="event-list">
             {events.length ? events.map(event => {
               const active = selected?.id === event.id;
@@ -101,7 +102,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                     <p>{new Date(event.starts_at).toLocaleString()} — {new Date(event.ends_at).toLocaleString()}</p>
                     <small>{sourceCalendar ? `${sourceCalendar} • ` : ""}{event.location || (event.all_day ? "All day" : "No location")}</small>
                   </div>
-                  <span className="row-chevron">›</span>
+                  <span className="row-chevron" aria-hidden="true">›</span>
                 </Link>
               );
             }) : (
@@ -118,7 +119,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             <div className="detail-stack">
               <div className="detail-header">
                 <div><p className="eyebrow">{calendarName || `${selected.provider} calendar`}</p><h1>{selected.title}</h1></div>
-                <span className="pill">{selected.all_day ? "All day" : "Scheduled"}</span>
+                <span className="pill" title="Event schedule type">{selected.all_day ? "All day" : "Scheduled"}</span>
               </div>
               <div className="detail-meta calendar-meta">
                 <div><small>Starts</small><b>{new Date(selected.starts_at).toLocaleString()}</b></div>
@@ -130,9 +131,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 <div className="message-body">{selected.description || "No description provided for this event."}</div>
               </section>
               <section className="detail-section">
-                <div className="section-heading"><h2>Attendees</h2><span className="pill">{attendees.length}</span></div>
+                <div className="section-heading"><h2>Attendees</h2><span className="pill" title="Imported attendee count">{attendees.length}</span></div>
                 {attendees.length ? <ul className="attendee-list">{attendees.map(attendee => <li key={attendee}>{attendee}</li>)}</ul> : <p className="muted">No attendees were included in the provider response.</p>}
               </section>
+              <EventUtilityActions eventId={selected.id} title={selected.title} startsAt={selected.starts_at} endsAt={selected.ends_at} location={selected.location} description={selected.description}/>
               <div className="detail-actions action-bar">
                 <div className="action-cluster">
                   {externalLink && <a className="button secondary" href={externalLink} target="_blank" rel="noreferrer">Open in {selected.provider === "google" ? "Google Calendar" : "Outlook"}</a>}
