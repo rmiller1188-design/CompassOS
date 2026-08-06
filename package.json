@@ -12,7 +12,8 @@
     "secrets": "node scripts/generate-secrets.mjs",
     "check:env": "node scripts/check-env.mjs",
     "check:migrations": "node scripts/check-migrations.mjs",
-    "validate": "npm run check:migrations && npm run check:env && npm run typecheck && npm run lint && npm run build"
+    "check:interactions": "node scripts/check-interactions.mjs",
+    "validate": "npm run check:migrations && npm run check:env && npm run check:interactions && npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.3",
