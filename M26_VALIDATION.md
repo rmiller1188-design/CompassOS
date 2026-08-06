@@ -1,59 +1,49 @@
-# M26 Validation
+# Compass M26 Validation Status
 
-Date: 2026-08-03
+Date: 2026-08-06
 
-## Source and build
+## Current branch
 
-- TypeScript/TSX syntax parse: PASS
-- package.json syntax: PASS
-- tsconfig.json syntax: PASS
-- Supabase migrations present in numeric order: PASS (001–006)
-- Public npm dependency installation on Node 22: PASS
-- TypeScript semantic typecheck: PASS
-- ESLint: PASS
-- Next.js production build: PASS
-- Final validation workflow run after infrastructure automation: PASS
+- Branch: `m26-connected-accounts`
+- Current interaction-hardening head: `c3fe524df53ac335ab2cbbbd0a0761b9882b34f0`
+- Main release PR: #3 (draft)
+- Production M25.2 on `main` remains unchanged.
 
-## Backend and security
+## Completed environment checks
 
-- Google OAuth routes present: PASS
-- Microsoft OAuth routes present: PASS
-- Signed OAuth state and S256 PKCE: PASS
-- Encrypted server-only token vault: PASS
-- Refresh-token retention across reconnect: PASS
-- Soft disconnect preserves imported data: PASS
-- Private/shared workspace RLS: PASS
-- Private/shared Storage paths and policies: PASS
-- Transactional shared workspace creation: PASS
-- Atomic email-bound invitation acceptance: PASS
-- Provider sync leases and stale-run recovery: PASS
-- Share-intake partial-failure cleanup: PASS
-- External action approval boundary: PASS
+- Supabase migrations 001-006 executed.
+- Render M26 service reached live/readiness state.
+- Google OAuth connection and real Gmail synchronization verified.
+- Google Calendar all-calendar import implemented.
+- Connected message, calendar, search, settings, tasks, Us sharing, and file workflows expanded.
 
-## Infrastructure automation
+## Interaction hardening
 
-- `Finish Compass M26` workflow available from the default branch: PASS
-- Supabase project create/reuse automation: PASS (requires owner token)
-- Ordered migration deployment automation: PASS (requires owner token)
-- Supabase Auth URL automation: PASS (requires owner token)
-- Render static-service safety stop: PASS
-- Separate M26 Render environment automation: PASS (requires owner token)
-- Render deploy trigger and health polling: PASS (requires owner token)
-- Secret values masked and not committed: PASS
+The current branch includes:
 
-## Native app
+- working task status, open/detail, due-date, source-message, and delete controls;
+- working message quick summary, local draft, copy, and follow-up actions;
+- clickable message, calendar, contact, search, file, dashboard, shared-event, settings, and navigation controls;
+- secure file open, download, and delete routes;
+- calendar-to-task and calendar-to-Us actions;
+- visible success, error, busy, cancellation, focus, hover, and pressed feedback;
+- a source audit that rejects permanently disabled or deceptive preview controls during `npm run typecheck`;
+- a local Daily Brief fallback when no OpenAI API key is configured.
 
-- iPhone companion scaffold: PASS
-- iPhone Share extension scaffold: PASS
-- Xcode build/signing: NOT RUN (requires macOS, Xcode targets, Apple Developer signing, App Group, and Keychain configuration)
+## Automated validation
 
-## Remaining external validation
+The previous validation run confirmed:
 
-- Supabase account authorization and real migration execution
-- Google OAuth application creation and test authorization
-- Microsoft Entra application creation and test authorization
-- Separate M26 Render service authorization and live health check
-- Two-account private/shared acceptance test
-- Xcode compile and signing
+- ordered migrations: PASS
+- dependency installation: PASS
+- TypeScript: PASS
 
-No claim is made that Google, Microsoft, OpenAI, Supabase, Render, or iOS functionality is live until the account-owner authorizations and real environment tests are completed.
+That run found one ESLint issue in secure file navigation. Commit `c3fe524df53ac335ab2cbbbd0a0761b9882b34f0` replaced the rejected direct location assignment with a standards-safe new-window action. A clean Node 22 validation run is queued for that exact commit.
+
+Do not mark PR #3 ready or merge it until the current validation run completes successfully and the deployed M26 service is smoke-tested after Render reports Live.
+
+## Remaining external checks
+
+- Microsoft Entra authorization and real sync
+- two-account privacy and Us invitation acceptance test
+- Xcode compile/signing on macOS
