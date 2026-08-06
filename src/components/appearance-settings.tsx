@@ -82,7 +82,7 @@ export function AppearanceSettings({ initialMode, initialAccent }: { initialMode
       <section className="card appearance-section">
         <div className="section-heading">
           <div><p className="eyebrow">Display</p><h2>Theme</h2></div>
-          <span className="pill">{busy ? "Saving" : "Synced"}</span>
+          <span className="pill" title="Appearance profile save status">{busy ? "Saving" : "Synced"}</span>
         </div>
         <p className="muted">Choose how Compass looks on this device. System follows the device appearance automatically.</p>
         <div className="theme-options">
@@ -128,9 +128,9 @@ export function AppearanceSettings({ initialMode, initialAccent }: { initialMode
           <h2>Compass interface</h2>
           <p className="muted">Changes apply immediately and follow your profile on supported Compass devices.</p>
         </div>
-        <div className="preview-window">
+        <div className="preview-window" aria-label="Non-interactive appearance preview">
           <span className="preview-sidebar"><i/><i/><i/></span>
-          <span className="preview-content"><b/><i/><i/><button type="button" tabIndex={-1}>Action</button></span>
+          <span className="preview-content"><b/><i/><i/><span className="preview-action">Action</span></span>
         </div>
       </section>
 
