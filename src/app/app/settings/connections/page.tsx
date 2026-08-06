@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ConnectAccountButtons } from "@/components/connect-account-buttons";
 import { ConnectionCard } from "@/components/connection-card";
+import { SettingsNav } from "@/components/settings-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -51,20 +52,23 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
   const connectionRows = (connections || []) as ConnectionRow[];
 
   return (
-    <div className="content-stack">
-      <section className="card page-intro">
-        <p className="eyebrow">Private connections</p>
-        <h1>Connect your accounts</h1>
-        <p className="muted">Start read-only. Compass stores provider tokens only in an encrypted server-side vault. Your partner connects their own accounts from their own sign-in.</p>
-        {profile && <ConnectAccountButtons profileId={profile.id}/>} 
-      </section>
-      {connected && <div className="notice success">{connected === "google" ? "Google" : connected === "microsoft" ? "Microsoft" : "Account"} connected. Run the first sync below.</div>}
-      {errorMessage && <div className="notice error">{errorMessage}</div>}
-      <section className="card">
-        <div className="section-heading"><div><p className="eyebrow">Account health</p><h2>{connectionRows.length} connected</h2></div></div>
-        <div className="connection-list">{connectionRows.length ? connectionRows.map(connection => <ConnectionCard key={connection.id} connection={connection}/>) : <div className="empty-inline"><b>No connected accounts</b><p>Connect Google or Microsoft above. Read access is requested separately from Compass sign-in.</p></div>}</div>
-      </section>
-      <section className="card"><h2>What this build requests</h2><div className="permission-grid"><Permission title="Google" items={["Gmail read-only","Calendar read-only","Contacts read-only"]}/><Permission title="Microsoft" items={["Mail.Read","Calendars.Read","Contacts.Read"]}/><Permission title="Not requested" items={["Send email","Delete email","Write calendar","Passwords"]}/></div></section>
+    <div className="settings-layout">
+      <SettingsNav active="connections"/>
+      <div className="content-stack">
+        <section className="card page-intro">
+          <p className="eyebrow">Private connections</p>
+          <h1>Connect your accounts</h1>
+          <p className="muted">Start read-only. Compass stores provider tokens only in an encrypted server-side vault. Your partner connects their own accounts from their own sign-in.</p>
+          {profile && <ConnectAccountButtons profileId={profile.id}/>} 
+        </section>
+        {connected && <div className="notice success">{connected === "google" ? "Google" : connected === "microsoft" ? "Microsoft" : "Account"} connected. Run the first sync below.</div>}
+        {errorMessage && <div className="notice error">{errorMessage}</div>}
+        <section className="card">
+          <div className="section-heading"><div><p className="eyebrow">Account health</p><h2>{connectionRows.length} connected</h2></div></div>
+          <div className="connection-list">{connectionRows.length ? connectionRows.map(connection => <ConnectionCard key={connection.id} connection={connection}/>) : <div className="empty-inline"><b>No connected accounts</b><p>Connect Google or Microsoft above. Read access is requested separately from Compass sign-in.</p></div>}</div>
+        </section>
+        <section className="card"><h2>What this build requests</h2><div className="permission-grid"><Permission title="Google" items={["Gmail read-only","Calendar read-only","Contacts read-only"]}/><Permission title="Microsoft" items={["Mail.Read","Calendars.Read","Contacts.Read"]}/><Permission title="Not requested" items={["Send email","Delete email","Write calendar","Passwords"]}/></div></section>
+      </div>
     </div>
   );
 }
