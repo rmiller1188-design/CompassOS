@@ -85,6 +85,15 @@
 - [x] Deterministic completeness, freshness, tamper, and malformed-input tests
 - [ ] Populate the ledger with live Supabase, provider, OpenAI, browser/device, and worker evidence
 
+### P7C — Release candidate and promotion gates — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Immutable release-candidate manifest bound to commit, artifact, migrations, and evidence ledger
+- [x] Deterministic candidate and promotion-report hashes
+- [x] Fail-closed production-readiness, migration, evidence-ledger, and commit binding checks
+- [x] Candidate-specific approval threshold, expiration, rejection, and mutation invalidation
+- [x] Duplicate-approver and malformed-input rejection
+- [x] Deterministic integrity, mismatch, stale-approval, rejection, and tamper tests
+- [ ] Execute a real staging-to-production promotion with live evidence and deployment infrastructure
+
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
 - [ ] Run user-approved OpenAI quality, latency, and cost evaluation
