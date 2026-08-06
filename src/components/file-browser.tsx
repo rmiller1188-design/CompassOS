@@ -44,7 +44,7 @@ export function FileBrowser({ initialFiles }: { initialFiles: FileEntry[] }) {
       if (popup) {
         popup.location.replace(json.url);
       } else {
-        window.location.href = json.url;
+        window.open(json.url, "_blank", "noopener,noreferrer");
       }
       setMessage(download ? `Download started for “${file.file_name}.”` : `Opened “${file.file_name}.”`);
     } catch {
