@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { InvitePartnerForm } from "@/components/invite-partner-form";
@@ -32,6 +33,22 @@ type SharedTask = {
   due_at: string | null;
   created_at: string;
 };
+
+function sourceEventId(event: SharedEvent): string | null {
+  if (!event.raw_metadata || typeof event.raw_metadata !== "object") return null;
+  const value = (event.raw_metadata as Record<string, unknown>).sharedFromEventId;
+  return typeof value === "string" && value ? value : null;
+}
+
+function SharedEventContent({ event }: { event: SharedEvent }) {
+  return (
+    <>
+      <div className="shared-date"><b>{new Date(event.starts_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</b><small>{event.all_day ? "All day" : new Date(event.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></div>
+      <div><b>{event.title}</b><p>{event.location || "No location"}</p>{event.description && <small>{event.description}</small>}</div>
+      <span className="row-chevron" aria-hidden="true">›</span>
+    </>
+  );
+}
 
 export default async function UsPage() {
   const user = await requireUser();
@@ -97,18 +114,18 @@ export default async function UsPage() {
       </section>
       <section className="card span-4"><h2>Invite partner</h2><p className="muted">They use their own Compass login and control their own connected accounts.</p><InvitePartnerForm workspaceId={shared.id}/></section>
       <section className="card span-6">
-        <div className="section-heading"><div><p className="eyebrow">Shared schedule</p><h2>Upcoming</h2></div><span className="pill">{sharedEvents.length}</span></div>
+        <div className="section-heading"><div><p className="eyebrow">Shared schedule</p><h2>Upcoming</h2></div><span className="pill" title="Upcoming events explicitly shared to Us">{sharedEvents.length}</span></div>
         <div className="shared-event-list">
-          {sharedEvents.length ? sharedEvents.map(event => (
-            <article className="shared-event-row" key={event.id}>
-              <div className="shared-date"><b>{new Date(event.starts_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</b><small>{event.all_day ? "All day" : new Date(event.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></div>
-              <div><b>{event.title}</b><p>{event.location || "No location"}</p>{event.description && <small>{event.description}</small>}</div>
-            </article>
-          )) : <div className="empty-inline"><b>No shared events</b><p>Open an event in Calendar and choose Share to Us.</p></div>}
+          {sharedEvents.length ? sharedEvents.map(event => {
+            const sourceId = sourceEventId(event);
+            return sourceId
+              ? <Link className="shared-event-row selectable-row" href={`/app/calendar?event=${sourceId}`} key={event.id}><SharedEventContent event={event}/></Link>
+              : <article className="shared-event-row" key={event.id}><SharedEventContent event={event}/></article>;
+          }) : <div className="empty-inline"><b>No shared events</b><p>Open an event in Calendar and choose Share to Us.</p><Link className="button secondary" href="/app/calendar">Open calendar</Link></div>}
         </div>
       </section>
       <section className="card span-6">
-        <div className="section-heading"><div><p className="eyebrow">Shared tasks</p><h2>Household follow-ups</h2></div><span className="pill">{sharedTasks.length}</span></div>
+        <div className="section-heading"><div><p className="eyebrow">Shared tasks</p><h2>Household follow-ups</h2></div><span className="pill" title="Shared task count">{sharedTasks.length}</span></div>
         <TaskBoard workspaceId={shared.id} initialTasks={sharedTasks}/>
       </section>
     </div>
