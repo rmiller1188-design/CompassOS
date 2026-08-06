@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ShareEventToUsButton } from "@/components/share-event-to-us-button";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,8 @@ type CalendarEvent = {
   raw_metadata: unknown;
 };
 
+type JoinedWorkspace = { id: string; kind: string };
+
 function firstParam(value: string | string[] | undefined): string | null {
   return Array.isArray(value) ? value[0] || null : value || null;
 }
@@ -25,14 +28,19 @@ function attendeeLabel(value: unknown): string | null {
   if (!value || typeof value !== "object") return null;
   const row = value as Record<string, unknown>;
   const emailAddress = row.emailAddress && typeof row.emailAddress === "object" ? row.emailAddress as Record<string, unknown> : null;
-  const name = typeof row.name === "string" ? row.name : typeof emailAddress?.name === "string" ? emailAddress.name : null;
+  const name = typeof row.displayName === "string" ? row.displayName : typeof row.name === "string" ? row.name : typeof emailAddress?.name === "string" ? emailAddress.name : null;
   const email = typeof row.email === "string" ? row.email : typeof emailAddress?.address === "string" ? emailAddress.address : null;
   return name && email ? `${name} <${email}>` : name || email;
 }
 
+function eventMetadata(event: CalendarEvent): Record<string, unknown> {
+  return event.raw_metadata && typeof event.raw_metadata === "object"
+    ? event.raw_metadata as Record<string, unknown>
+    : {};
+}
+
 function providerEventLink(event: CalendarEvent): string | null {
-  if (!event.raw_metadata || typeof event.raw_metadata !== "object") return null;
-  const raw = event.raw_metadata as Record<string, unknown>;
+  const raw = eventMetadata(event);
   const candidate = typeof raw.htmlLink === "string" ? raw.htmlLink : typeof raw.webLink === "string" ? raw.webLink : null;
   return candidate?.startsWith("https://") ? candidate : null;
 }
@@ -41,27 +49,41 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const user = await requireUser();
   const params = await searchParams;
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("calendar_events")
-    .select("id,provider,title,description,starts_at,ends_at,location,all_day,attendees,raw_metadata")
-    .eq("owner_id", user.id)
-    .order("starts_at")
-    .limit(100);
+  const [eventResult, membershipResult] = await Promise.all([
+    admin
+      .from("calendar_events")
+      .select("id,provider,title,description,starts_at,ends_at,location,all_day,attendees,raw_metadata")
+      .eq("owner_id", user.id)
+      .neq("provider", "shared")
+      .order("starts_at")
+      .limit(250),
+    admin
+      .from("workspace_members")
+      .select("workspace_id,workspaces(id,kind)")
+      .eq("user_id", user.id)
+  ]);
 
-  const events = (data || []) as CalendarEvent[];
+  const events = (eventResult.data || []) as CalendarEvent[];
+  const hasSharedWorkspace = (membershipResult.data || []).some(row => {
+    const joined = row.workspaces as JoinedWorkspace | JoinedWorkspace[] | null;
+    const workspaces = Array.isArray(joined) ? joined : joined ? [joined] : [];
+    return workspaces.some(workspace => workspace.kind === "shared");
+  });
   const requestedId = firstParam(params.event);
   const selected = events.find(event => event.id === requestedId) || events[0] || null;
   const attendees = Array.isArray(selected?.attendees)
     ? selected.attendees.map(attendeeLabel).filter((value): value is string => Boolean(value))
     : [];
   const externalLink = selected ? providerEventLink(selected) : null;
+  const selectedMetadata = selected ? eventMetadata(selected) : {};
+  const calendarName = typeof selectedMetadata.calendarName === "string" ? selectedMetadata.calendarName : null;
 
   return (
     <div className="content-stack">
       <section className="card page-intro">
         <p className="eyebrow">Combined private view</p>
         <h1>Your calendar</h1>
-        <p className="muted">Select an imported event to view its schedule, location, description, attendees, and provider link.</p>
+        <p className="muted">Select an imported event to view its schedule, location, description, attendees, provider link, and sharing controls.</p>
       </section>
       <div className="two-pane calendar-two-pane">
         <section className="card list-pane">
@@ -69,13 +91,15 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <div className="event-list">
             {events.length ? events.map(event => {
               const active = selected?.id === event.id;
+              const metadata = eventMetadata(event);
+              const sourceCalendar = typeof metadata.calendarName === "string" ? metadata.calendarName : null;
               return (
                 <Link className={`event-row selectable-row${active ? " selected" : ""}`} href={`/app/calendar?event=${event.id}`} key={event.id} aria-current={active ? "page" : undefined}>
                   <span className={`provider-icon ${event.provider}`}>{event.provider === "google" ? "G" : "M"}</span>
                   <div>
                     <b>{event.title}</b>
                     <p>{new Date(event.starts_at).toLocaleString()} — {new Date(event.ends_at).toLocaleString()}</p>
-                    <small>{event.location || (event.all_day ? "All day" : "No location")}</small>
+                    <small>{sourceCalendar ? `${sourceCalendar} • ` : ""}{event.location || (event.all_day ? "All day" : "No location")}</small>
                   </div>
                   <span className="row-chevron">›</span>
                 </Link>
@@ -93,7 +117,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           {selected ? (
             <div className="detail-stack">
               <div className="detail-header">
-                <div><p className="eyebrow">{selected.provider} calendar</p><h1>{selected.title}</h1></div>
+                <div><p className="eyebrow">{calendarName || `${selected.provider} calendar`}</p><h1>{selected.title}</h1></div>
                 <span className="pill">{selected.all_day ? "All day" : "Scheduled"}</span>
               </div>
               <div className="detail-meta calendar-meta">
@@ -109,9 +133,17 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 <div className="section-heading"><h2>Attendees</h2><span className="pill">{attendees.length}</span></div>
                 {attendees.length ? <ul className="attendee-list">{attendees.map(attendee => <li key={attendee}>{attendee}</li>)}</ul> : <p className="muted">No attendees were included in the provider response.</p>}
               </section>
-              <div className="detail-actions">
-                {externalLink && <a className="button secondary" href={externalLink} target="_blank" rel="noreferrer">Open in {selected.provider === "google" ? "Google Calendar" : "Outlook"}</a>}
-                <button className="button primary" disabled title="Sharing into Us is not implemented yet">Share to Us</button>
+              <div className="detail-actions action-bar">
+                <div className="action-cluster">
+                  {externalLink && <a className="button secondary" href={externalLink} target="_blank" rel="noreferrer">Open in {selected.provider === "google" ? "Google Calendar" : "Outlook"}</a>}
+                </div>
+                {hasSharedWorkspace ? (
+                  <ShareEventToUsButton eventId={selected.id}/>
+                ) : (
+                  <div className="action-cluster">
+                    <Link className="button primary" href="/app/us">Create Us to share</Link>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
