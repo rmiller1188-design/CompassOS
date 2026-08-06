@@ -45,7 +45,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     const [messageQuery, eventQuery, peopleQuery] = await Promise.all([
       admin.from("communication_items").select("id,subject,preview,sender,occurred_at").eq("owner_id", user.id).or(`subject.ilike.${pattern},preview.ilike.${pattern},sender.ilike.${pattern}`).limit(30),
       admin.from("calendar_events").select("id,title,starts_at,location").eq("owner_id", user.id).or(`title.ilike.${pattern},location.ilike.${pattern}`).limit(30),
-      admin.from("people").select("id,display_name,email_addresses,phone_numbers").eq("owner_id", user.id).or(`display_name.ilike.${pattern},email_addresses.cs.{${safeQuery}}`).limit(30)
+      admin.from("people").select("id,display_name,email_addresses,phone_numbers").eq("owner_id", user.id).ilike("display_name", pattern).limit(30)
     ]);
     messages = (messageQuery.data || []) as MessageResult[];
     events = (eventQuery.data || []) as EventResult[];
