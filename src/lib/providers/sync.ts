@@ -24,6 +24,73 @@ function googleHeader(headers: unknown, name: string): string | null {
   return match?.value ? String(match.value) : null;
 }
 
+function decodeBase64Url(value: unknown): string | null {
+  if (typeof value !== "string" || !value) return null;
+  try {
+    const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    return Buffer.from(padded, "base64").toString("utf8");
+  } catch {
+    return null;
+  }
+}
+
+function stripHtml(value: string): string {
+  return value
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<br\s*\/?\s*>/gi, "\n")
+    .replace(/<\/p\s*>/gi, "\n\n")
+    .replace(/<\/div\s*>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "• ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\r/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+function limitBody(value: string | null): string | null {
+  if (!value) return null;
+  const cleaned = value.replace(/\u0000/g, "").trim();
+  return cleaned ? cleaned.slice(0, 250_000) : null;
+}
+
+function gmailBodyText(payload: unknown): string | null {
+  const plain: string[] = [];
+  const html: string[] = [];
+
+  function visit(partValue: unknown) {
+    if (!partValue || typeof partValue !== "object") return;
+    const part = partValue as Record<string, unknown>;
+    const mimeType = typeof part.mimeType === "string" ? part.mimeType.toLowerCase() : "";
+    const body = part.body && typeof part.body === "object" ? part.body as Record<string, unknown> : null;
+    const decoded = decodeBase64Url(body?.data);
+    if (decoded && mimeType === "text/plain") plain.push(decoded);
+    if (decoded && mimeType === "text/html") html.push(decoded);
+    for (const child of asArray<Record<string, unknown>>(part.parts)) visit(child);
+  }
+
+  visit(payload);
+  if (plain.length) return limitBody(plain.join("\n\n"));
+  if (html.length) return limitBody(stripHtml(html.join("\n\n")));
+  return null;
+}
+
+function microsoftBodyText(message: Record<string, unknown>): string | null {
+  const body = message.body && typeof message.body === "object" ? message.body as Record<string, unknown> : null;
+  const content = typeof body?.content === "string" ? body.content : null;
+  if (!content) return null;
+  return limitBody(String(body?.contentType).toLowerCase() === "html" ? stripHtml(content) : content);
+}
+
 export async function syncConnection(connectionId: string, userId: string, expectedProvider: ProviderName) {
   const admin = createAdminClient();
   const { data: connection, error } = await admin
@@ -103,10 +170,11 @@ async function syncGoogle(accessToken: string, connection: Record<string, string
   const mailList = await googleJson(accessToken, "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30&q=newer_than:30d");
   for (const row of asArray<Record<string, unknown>>(mailList.messages)) {
     const id = String(row.id);
-    const message = await googleJson(accessToken, `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`);
+    const message = await googleJson(accessToken, `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`);
     const payload = message.payload as Record<string, unknown> | undefined;
     const headers = payload?.headers;
     const internalDate = message.internalDate ? new Date(Number(message.internalDate)).toISOString() : new Date().toISOString();
+    const recipients = [googleHeader(headers, "To")].filter((value): value is string => Boolean(value));
     const { error } = await admin.from("communication_items").upsert({
       owner_id: connection.owner_id,
       workspace_id: connection.workspace_id,
@@ -119,8 +187,9 @@ async function syncGoogle(accessToken: string, connection: Record<string, string
       direction: "inbound",
       subject: googleHeader(headers, "Subject"),
       sender: googleHeader(headers, "From"),
-      recipients: [googleHeader(headers, "To")].filter(Boolean),
+      recipients,
       preview: message.snippet ? String(message.snippet) : null,
+      body_text: gmailBodyText(payload),
       occurred_at: internalDate,
       raw_metadata: { labelIds: message.labelIds || [] },
       updated_at: new Date().toISOString()
@@ -149,7 +218,7 @@ async function syncGoogle(accessToken: string, connection: Record<string, string
       provider: "google",
       external_id: String(event.id),
       title: String(event.summary || "Untitled event"),
-      description: event.description ? String(event.description) : null,
+      description: event.description ? stripHtml(String(event.description)) : null,
       location: event.location ? String(event.location) : null,
       starts_at: String(start?.dateTime || start?.date || new Date().toISOString()),
       ends_at: String(end?.dateTime || end?.date || new Date().toISOString()),
@@ -189,11 +258,13 @@ async function syncGoogle(accessToken: string, connection: Record<string, string
 async function syncMicrosoft(accessToken: string, connection: Record<string, string>) {
   const admin = createAdminClient();
   let mailCount = 0, calendarCount = 0, peopleCount = 0;
-  const messages = await microsoftJson(accessToken, "https://graph.microsoft.com/v1.0/me/messages?$top=30&$orderby=receivedDateTime%20desc&$select=id,conversationId,subject,bodyPreview,receivedDateTime,from,toRecipients,isRead");
+  const messages = await microsoftJson(accessToken, "https://graph.microsoft.com/v1.0/me/messages?$top=30&$orderby=receivedDateTime%20desc&$select=id,conversationId,subject,bodyPreview,body,receivedDateTime,from,toRecipients,isRead,hasAttachments");
   for (const message of asArray<Record<string, unknown>>(messages.value)) {
     const from = message.from as Record<string, unknown> | undefined;
     const fromAddress = from?.emailAddress as Record<string, unknown> | undefined;
-    const recipients = asArray<Record<string, unknown>>(message.toRecipients).map(r => (r.emailAddress as Record<string, unknown> | undefined)?.address).filter(Boolean);
+    const recipients = asArray<Record<string, unknown>>(message.toRecipients)
+      .map(r => (r.emailAddress as Record<string, unknown> | undefined)?.address)
+      .filter((value): value is string => typeof value === "string" && Boolean(value));
     const { error } = await admin.from("communication_items").upsert({
       owner_id: connection.owner_id,
       workspace_id: connection.workspace_id,
@@ -208,8 +279,9 @@ async function syncMicrosoft(accessToken: string, connection: Record<string, str
       sender: fromAddress?.address ? String(fromAddress.address) : null,
       recipients,
       preview: message.bodyPreview ? String(message.bodyPreview) : null,
+      body_text: microsoftBodyText(message),
       occurred_at: message.receivedDateTime ? String(message.receivedDateTime) : new Date().toISOString(),
-      raw_metadata: { isRead: Boolean(message.isRead) },
+      raw_metadata: { isRead: Boolean(message.isRead), hasAttachments: Boolean(message.hasAttachments) },
       updated_at: new Date().toISOString()
     }, { onConflict: "provider,connection_id,external_id" });
     if (error) throw new Error("SYNC_WRITE_FAILED");
