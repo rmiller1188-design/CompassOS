@@ -94,6 +94,16 @@
 - [x] Deterministic integrity, mismatch, stale-approval, rejection, and tamper tests
 - [ ] Execute a real staging-to-production promotion with live evidence and deployment infrastructure
 
+### P7D — Progressive rollout and rollback gates — VALIDATION PENDING
+- [x] Immutable rollout plan bound to release candidate, promotion report, and rollback artifact
+- [x] Canary, percentage, and all-at-once strategy validation
+- [x] Fail-closed freshness, sample-count, error-rate, latency, queue-age, and critical-alert gates
+- [x] Rollback readiness required before any rollout advance
+- [x] Deterministic rollout-plan and decision hashes with tamper detection
+- [x] Deterministic healthy advance, rollback, stale-observation, malformed-input, and tamper tests
+- [ ] Pass repository validation on the exact branch head
+- [ ] Execute a real canary rollout and rollback drill with live infrastructure evidence
+
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
 - [ ] Run user-approved OpenAI quality, latency, and cost evaluation
