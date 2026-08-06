@@ -10,17 +10,17 @@ const updateTaskSchema = z.object({
   dueAt: z.string().datetime().nullable().optional()
 }).refine(input => Object.keys(input).length > 0, { message: "At least one task field is required." });
 
-async function ownedTask(userId: string, taskId: string) {
+async function accessibleTask(userId: string, taskId: string) {
   const admin = createAdminClient();
   const { data: task, error } = await admin
     .from("shared_tasks")
-    .select("id,workspace_id")
+    .select("id,workspace_id,created_by")
     .eq("id", taskId)
     .single();
 
   if (error || !task) return null;
-  await assertWorkspaceMember(userId, task.workspace_id);
-  return task;
+  const membership = await assertWorkspaceMember(userId, task.workspace_id);
+  return { ...task, memberRole: membership.role };
 }
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -29,7 +29,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const { id } = await context.params;
     const taskId = z.string().uuid().parse(id);
     const input = updateTaskSchema.parse(await request.json());
-    const task = await ownedTask(user.id, taskId);
+    const task = await accessibleTask(user.id, taskId);
     if (!task) return NextResponse.json({ error: "task_not_found" }, { status: 404 });
 
     const changes: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -65,8 +65,10 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
     const user = await requireApiUser();
     const { id } = await context.params;
     const taskId = z.string().uuid().parse(id);
-    const task = await ownedTask(user.id, taskId);
+    const task = await accessibleTask(user.id, taskId);
     if (!task) return NextResponse.json({ error: "task_not_found" }, { status: 404 });
+    const canDelete = task.created_by === user.id || task.memberRole === "owner" || task.memberRole === "admin";
+    if (!canDelete) return NextResponse.json({ error: "task_delete_forbidden" }, { status: 403 });
 
     const admin = createAdminClient();
     const { error } = await admin.from("shared_tasks").delete().eq("id", taskId);
