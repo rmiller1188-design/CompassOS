@@ -14,6 +14,8 @@ type Connection = {
   scopes: string[];
 };
 
+type SyncCounts = Record<string, number>;
+
 function syncErrorMessage(code: string | undefined): string {
   switch (code) {
     case "sync_already_running":
@@ -24,9 +26,29 @@ function syncErrorMessage(code: string | undefined): string {
       return "This connection is no longer available.";
     case "provider_connection_mismatch":
       return "The selected provider does not match this connection.";
+    case "google_calendar_scope_required":
+      return "Google Calendar access is missing. Reconnect Google and approve the Calendar permission.";
+    case "google_calendar_sync_failed":
+      return "Messages synced, but Google Calendar could not finish. Review the Render logs for the calendar error.";
     default:
       return "Sync failed. Review the account status and server logs.";
   }
+}
+
+function count(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+function syncSummary(provider: Connection["provider"], counts: SyncCounts): string {
+  const mail = count(counts.mail);
+  const calendar = count(counts.calendar);
+  const people = count(counts.people);
+  if (provider === "google") {
+    const calendars = count(counts.calendars);
+    return `Synced ${mail} messages, ${calendar} events from ${calendars} calendars, and ${people} contacts.`;
+  }
+  return `Synced ${mail} messages, ${calendar} events, and ${people} contacts.`;
 }
 
 export function ConnectionCard({ connection }: { connection: Connection }) {
@@ -49,10 +71,26 @@ export function ConnectionCard({ connection }: { connection: Connection }) {
       const json = await response.json();
       if (!response.ok) {
         setMessage(syncErrorMessage(json.error));
-      } else {
-        const total = Object.values(json.counts || {}).reduce((sum: number, value) => sum + Number(value), 0);
-        setMessage(`Synced ${total} items.`);
+        return;
       }
+
+      const counts: SyncCounts = { ...(json.counts || {}) };
+      if (connection.provider === "google") {
+        const calendarResponse = await fetch("/api/sync/google-calendar", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ connectionId: connection.id })
+        });
+        const calendarJson = await calendarResponse.json();
+        if (!calendarResponse.ok) {
+          setMessage(syncErrorMessage(calendarJson.error));
+          return;
+        }
+        counts.calendar = count(calendarJson.counts?.calendar);
+        counts.calendars = count(calendarJson.counts?.calendars);
+      }
+
+      setMessage(syncSummary(connection.provider, counts));
       router.refresh();
     } catch {
       setMessage("Sync failed. Check your connection and try again.");
