@@ -85,6 +85,15 @@
 - [x] Deterministic completeness, freshness, tamper, and malformed-input tests
 - [ ] Populate the ledger with live Supabase, provider, OpenAI, browser/device, and worker evidence
 
+### P7C — Signed release attestations — REVIEWABLE CORE / LIVE RELEASE BLOCKED
+- [x] Release reports bound to commit, migration manifest, evidence ledger, and artifact digests
+- [x] Fail-closed blocking when readiness or validation evidence is incomplete
+- [x] Ed25519 signatures with public-key verification and explicit key identifiers
+- [x] Deterministic canonical hashing, artifact ordering, and mutation detection
+- [x] Sensitive metadata field rejection
+- [x] Deterministic eligibility, signature, tamper, key-mismatch, and malformed-input tests
+- [ ] Configure protected release signing key custody and populate live validation evidence
+
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
 - [ ] Run user-approved OpenAI quality, latency, and cost evaluation
