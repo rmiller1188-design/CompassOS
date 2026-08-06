@@ -76,6 +76,15 @@
 - [x] Deterministic runtime, migration, privacy, and blocker-classification tests
 - [ ] Apply migrations and run live RLS, OAuth, sync, OpenAI, browser, and worker validation
 
+### P7B — Validation evidence ledger — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Normalized CI, staging, and production evidence records
+- [x] Required-control completeness and latest-evidence selection
+- [x] Evidence expiration and fail-closed missing-evidence behavior
+- [x] Failed-over-blocked disposition precedence
+- [x] Commit, workflow-run, artifact-digest, entry-hash, and ledger-hash provenance
+- [x] Deterministic completeness, freshness, tamper, and malformed-input tests
+- [ ] Populate the ledger with live Supabase, provider, OpenAI, browser/device, and worker evidence
+
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
 - [ ] Run user-approved OpenAI quality, latency, and cost evaluation
