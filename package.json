@@ -8,12 +8,12 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node scripts/check-interactions.mjs && tsc --noEmit",
     "secrets": "node scripts/generate-secrets.mjs",
     "check:env": "node scripts/check-env.mjs",
     "check:migrations": "node scripts/check-migrations.mjs",
     "check:interactions": "node scripts/check-interactions.mjs",
-    "validate": "npm run check:migrations && npm run check:env && npm run check:interactions && npm run typecheck && npm run lint && npm run build"
+    "validate": "npm run check:migrations && npm run check:env && npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.3",
