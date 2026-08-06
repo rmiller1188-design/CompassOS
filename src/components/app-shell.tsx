@@ -44,6 +44,19 @@ export function AppShell({ children, displayName, initialMode, initialAccent }: 
     return () => media.removeEventListener("change", update);
   }, [initialMode, initialAccent]);
 
+  function goBack() {
+    try {
+      const referrer = document.referrer ? new URL(document.referrer) : null;
+      if (referrer?.origin === window.location.origin && window.history.length > 1) {
+        router.back();
+        return;
+      }
+    } catch {
+      // Fall through to the safe Compass destination.
+    }
+    router.push("/app");
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     router.replace("/sign-in");
@@ -53,30 +66,30 @@ export function AppShell({ children, displayName, initialMode, initialAccent }: 
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link href="/app" className="brand"><span className="brand-mark small">C</span><span><b>Compass</b><small>You + Us</small></span></Link>
+        <Link href="/app" className="brand" aria-label="Open Compass Home"><span className="brand-mark small">C</span><span><b>Compass</b><small>You + Us</small></span></Link>
         <nav>
           {nav.map(([href, icon, label]) => {
             const active = href === "/app" ? pathname === href : pathname.startsWith(href);
-            return <Link key={href} href={href} className={active ? "active" : ""}><span>{icon}</span>{label}</Link>;
+            return <Link key={href} href={href} className={active ? "active" : ""} aria-current={active ? "page" : undefined}><span>{icon}</span>{label}</Link>;
           })}
         </nav>
         <div className="sidebar-bottom">
-          <Link className="profile-chip" href="/app/settings"><span className="avatar">{displayName.slice(0,1).toUpperCase()}</span><span><b>{displayName}</b><small>Private profile</small></span></Link>
-          <button className="text-button" onClick={signOut}>Sign out</button>
+          <Link className="profile-chip" href="/app/settings" aria-label="Open profile and appearance settings"><span className="avatar">{displayName.slice(0,1).toUpperCase()}</span><span><b>{displayName}</b><small>Private profile</small></span></Link>
+          <button className="text-button interactive-text-button" onClick={() => void signOut()}>Sign out</button>
         </div>
       </aside>
       <div className="app-main">
         <header className="topbar">
-          <button className="icon-button" onClick={() => router.back()} aria-label="Back">‹</button>
+          <button className="icon-button" onClick={goBack} aria-label="Back" title="Back">‹</button>
           <div className="top-title"><b>{pageTitle(pathname)}</b><small>Private by default</small></div>
-          <div className="top-actions"><Link className="icon-button" href="/app/search">⌕</Link><Link className="icon-button" href="/app/settings">⚙</Link></div>
+          <div className="top-actions"><Link className="icon-button" href="/app/search" aria-label="Search" title="Search">⌕</Link><Link className="icon-button" href="/app/settings" aria-label="Settings" title="Settings">⚙</Link></div>
         </header>
         <main className="page-content">{children}</main>
       </div>
       <nav className="mobile-nav">
         {nav.map(([href, icon, label]) => {
           const active = href === "/app" ? pathname === href : pathname.startsWith(href);
-          return <Link key={href} href={href} className={active ? "active" : ""}><span>{icon}</span>{label}</Link>;
+          return <Link key={href} href={href} className={active ? "active" : ""} aria-current={active ? "page" : undefined}><span>{icon}</span>{label}</Link>;
         })}
       </nav>
     </div>
@@ -87,6 +100,7 @@ function pageTitle(pathname: string) {
   if (pathname.includes("settings")) return "Settings";
   if (pathname.includes("messages")) return "Messages";
   if (pathname.includes("calendar")) return "Calendar";
+  if (pathname.includes("/people/")) return "Contact";
   if (pathname.includes("/us")) return "Us";
   if (pathname.includes("search")) return "Search";
   if (pathname.includes("files")) return "Files";
