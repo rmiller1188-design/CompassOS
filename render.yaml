@@ -1,11 +1,38 @@
 services:
   - type: web
-    name: compass-os
-    runtime: static
-    buildCommand: echo "Compass AI is a prebuilt static release"
-    staticPublishPath: .
-    autoDeployTrigger: commit
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    name: compass-os-m26
+    runtime: node
+    branch: m26-connected-accounts
+    buildCommand: npm install --no-audit --no-fund && npm run build
+    startCommand: npm run start
+    autoDeployTrigger: checksPass
+    healthCheckPath: /api/live
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: OAUTH_STATE_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_TENANT
+        value: common
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5
