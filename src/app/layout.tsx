@@ -4,6 +4,7 @@ import "./detail-views.css";
 import "./actions.css";
 import "./appearance.css";
 import "./interactions.css";
+import "./usability.css";
 
 export const metadata: Metadata = {
   title: "Compass AI — You + Us",
