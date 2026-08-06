@@ -104,8 +104,8 @@ export function evaluateReleasePromotion({
   const checks = [];
   const addCheck = (id, passed, detail) => checks.push(Object.freeze({ id, passed: Boolean(passed), detail }));
   addCheck('candidate-hash-valid', verifyReleaseCandidate(candidate), 'candidate manifest integrity');
-  addCheck('readiness-passed', readiness.disposition === 'passed', `readiness disposition: ${readiness.disposition}`);
-  addCheck('migration-hash-bound', readiness.migrationManifestHash === candidate.migrationManifestHash, 'candidate migration manifest matches readiness evidence');
+  addCheck('readiness-passed', readiness.ready === true && readiness.disposition === 'reviewable-live', `readiness disposition: ${readiness.disposition}`);
+  addCheck('migration-hash-bound', readiness.migrations?.manifestHash === candidate.migrationManifestHash, 'candidate migration manifest matches readiness evidence');
   addCheck('ledger-ready', evidenceLedger.ready === true && evidenceLedger.disposition === 'reviewable-live', `ledger disposition: ${evidenceLedger.disposition}`);
   addCheck('ledger-hash-bound', evidenceLedger.ledgerHash === candidate.evidenceLedgerHash, 'candidate evidence ledger hash matches');
 
