@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { MessageFollowUpActions } from "@/components/message-follow-up-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,8 @@ type MessageDetail = MessageListItem & {
   direction: string;
 };
 
+type JoinedWorkspace = { id: string; kind: string };
+
 function firstParam(value: string | string[] | undefined): string | null {
   return Array.isArray(value) ? value[0] || null : value || null;
 }
@@ -29,14 +32,26 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const user = await requireUser();
   const params = await searchParams;
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("communication_items")
-    .select("id,provider,channel,subject,sender,preview,occurred_at")
-    .eq("owner_id", user.id)
-    .order("occurred_at", { ascending: false })
-    .limit(100);
+  const [messageResult, membershipResult] = await Promise.all([
+    admin
+      .from("communication_items")
+      .select("id,provider,channel,subject,sender,preview,occurred_at")
+      .eq("owner_id", user.id)
+      .order("occurred_at", { ascending: false })
+      .limit(100),
+    admin
+      .from("workspace_members")
+      .select("workspace_id,workspaces(id,kind)")
+      .eq("user_id", user.id)
+  ]);
 
-  const items = (data || []) as MessageListItem[];
+  const items = (messageResult.data || []) as MessageListItem[];
+  const hasSharedWorkspace = (membershipResult.data || []).some(row => {
+    const joined = row.workspaces as JoinedWorkspace | JoinedWorkspace[] | null;
+    const workspaces = Array.isArray(joined) ? joined : joined ? [joined] : [];
+    return workspaces.some(workspace => workspace.kind === "shared");
+  });
+
   const requestedId = firstParam(params.message);
   const selectedId = requestedId || items[0]?.id || null;
   let selected: MessageDetail | null = null;
@@ -123,9 +138,12 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                 </article>
               ))}
             </div>
-            <div className="detail-actions">
-              <button className="button secondary" disabled title="Drafting is not implemented yet">Summarize</button>
-              <button className="button primary" disabled title="Reply approval is not implemented yet">Draft reply</button>
+            <div className="detail-actions action-bar">
+              <MessageFollowUpActions messageId={selected.id} hasSharedWorkspace={hasSharedWorkspace}/>
+              <div className="action-cluster">
+                <button className="button secondary" disabled title="AI summaries require an OpenAI API key">Summarize</button>
+                <button className="button secondary" disabled title="Reply drafting and send approval are not implemented yet">Draft reply</button>
+              </div>
             </div>
           </div>
         ) : (
