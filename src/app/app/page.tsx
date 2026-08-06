@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DailyBrief } from "@/components/daily-brief";
+import { TaskBoard } from "@/components/task-board";
 
 export const dynamic = "force-dynamic";
 
@@ -11,22 +12,33 @@ type JoinedWorkspace = {
   kind?: string;
 };
 
+type HomeTask = {
+  id: string;
+  title: string;
+  notes: string | null;
+  status: string;
+  due_at: string | null;
+  created_at: string;
+};
+
 export default async function DashboardPage() {
   const user = await requireUser();
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("id,display_name,personal_workspace_id").eq("owner_id", user.id).eq("kind", "personal").single();
   if (!profile) return <SetupRequired />;
 
-  const [connections, unread, events, sharedWorkspaces] = await Promise.all([
+  const [connections, unread, events, sharedWorkspaces, taskResult] = await Promise.all([
     admin.from("provider_connections").select("id,status,last_sync_at").eq("owner_id", user.id),
     admin.from("communication_items").select("id", { count: "exact", head: true }).eq("owner_id", user.id).eq("direction", "inbound"),
-    admin.from("calendar_events").select("id,title,starts_at").eq("owner_id", user.id).gte("starts_at", new Date().toISOString()).order("starts_at").limit(3),
-    admin.from("workspace_members").select("workspace_id,workspaces(id,name,kind)").eq("user_id", user.id)
+    admin.from("calendar_events").select("id,title,starts_at").eq("workspace_id", profile.personal_workspace_id).neq("provider", "shared").gte("starts_at", new Date().toISOString()).order("starts_at").limit(3),
+    admin.from("workspace_members").select("workspace_id,workspaces(id,name,kind)").eq("user_id", user.id),
+    admin.from("shared_tasks").select("id,title,notes,status,due_at,created_at").eq("workspace_id", profile.personal_workspace_id).neq("status", "cancelled").order("created_at", { ascending: false }).limit(50)
   ]);
 
   const connectionRows = connections.data || [];
   const healthy = connectionRows.filter(connection => connection.status === "healthy").length;
   const nextEvent = events.data?.[0];
+  const personalTasks = (taskResult.data || []) as HomeTask[];
   const hasSharedWorkspace = (sharedWorkspaces.data || []).some(row => {
     const joined = row.workspaces as JoinedWorkspace | JoinedWorkspace[] | null;
     return Array.isArray(joined)
@@ -65,18 +77,22 @@ export default async function DashboardPage() {
       </section>
       <section className="card span-6">
         <div className="section-heading"><div><p className="eyebrow">Messages</p><h2>Recent attention</h2></div><span className="pill">{unread.count || 0} imported</span></div>
-        <p className="muted">Synced email and selected phone-share items appear here. Conversation detail, drafting, and send approval are not implemented yet.</p>
+        <p className="muted">Open full imported message details and convert any message into a private or shared follow-up.</p>
         <Link className="button secondary" href="/app/messages">Open messages</Link>
       </section>
       <section className="card span-6">
         <div className="section-heading"><div><p className="eyebrow">Calendar</p><h2>{nextEvent ? nextEvent.title : "No upcoming event"}</h2></div>{nextEvent && <span className="pill">{new Date(nextEvent.starts_at).toLocaleString()}</span>}</div>
-        <p className="muted">Connected calendar events appear here. Sharing an event into Us is not implemented yet.</p>
+        <p className="muted">Review imported event details and explicitly share selected events into Us.</p>
         <Link className="button secondary" href="/app/calendar">Open calendar</Link>
+      </section>
+      <section className="card span-6">
+        <div className="section-heading"><div><p className="eyebrow">Follow-ups</p><h2>Private tasks</h2></div><span className="pill">{personalTasks.filter(task => task.status !== "done").length} open</span></div>
+        <TaskBoard workspaceId={profile.personal_workspace_id} initialTasks={personalTasks} compact/>
       </section>
       <section className="card span-6">
         <p className="eyebrow">Us</p>
         <h2>Shared household space</h2>
-        <p className="muted">{hasSharedWorkspace ? "Your shared workspace is active." : "Create an Us workspace and invite your partner."}</p>
+        <p className="muted">{hasSharedWorkspace ? "Shared schedule and household tasks are active." : "Create an Us workspace and invite your partner."}</p>
         <Link className="button secondary" href="/app/us">Open Us</Link>
       </section>
       <section className="card span-6">
