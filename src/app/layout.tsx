@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./detail-views.css";
 
 export const metadata: Metadata = {
   title: "Compass AI — You + Us",
