@@ -29,13 +29,16 @@ function localDateTimeValue(value: string | null): string {
   return local.toISOString().slice(0, 16);
 }
 
-function sourceMessageId(notes: string | null): string | null {
-  const match = notes?.match(/Source message:\s*([0-9a-f-]{36})/i);
+function sourceId(notes: string | null, kind: "message" | "event"): string | null {
+  const match = notes?.match(new RegExp(`Source ${kind}:\\s*([0-9a-f-]{36})`, "i"));
   return match?.[1] || null;
 }
 
 function cleanNotes(notes: string | null): string {
-  return (notes || "").replace(/Source message:\s*[0-9a-f-]{36}/gi, "").trim();
+  return (notes || "")
+    .replace(/Source message:\s*[0-9a-f-]{36}/gi, "")
+    .replace(/Source event:\s*[0-9a-f-]{36}/gi, "")
+    .trim();
 }
 
 export function TaskBoard({ workspaceId, initialTasks, compact = false }: { workspaceId: string; initialTasks: Task[]; compact?: boolean }) {
@@ -77,11 +80,7 @@ export function TaskBoard({ workspaceId, initialTasks, compact = false }: { work
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          workspaceId,
-          title: title.trim(),
-          dueAt: dueAt ? new Date(dueAt).toISOString() : null
-        })
+        body: JSON.stringify({ workspaceId, title: title.trim(), dueAt: dueAt ? new Date(dueAt).toISOString() : null })
       });
       const json = await response.json();
       if (!response.ok) {
@@ -183,42 +182,35 @@ export function TaskBoard({ workspaceId, initialTasks, compact = false }: { work
       <div className="task-list">
         {visibleTasks.length ? visibleTasks.map(task => {
           const expanded = expandedId === task.id;
-          const sourceId = sourceMessageId(task.notes);
+          const sourceMessage = sourceId(task.notes, "message");
+          const sourceEvent = sourceId(task.notes, "event");
           const notes = cleanNotes(task.notes);
           const taskBusy = busyTaskId === task.id;
           return (
             <article className={`task-row${task.status === "done" ? " done" : ""}${expanded ? " expanded" : ""}`} key={task.id}>
-              <button type="button" className="task-toggle" onClick={() => void toggleTask(task)} disabled={taskBusy} aria-label={task.status === "done" ? "Reopen task" : "Complete task"} title={task.status === "done" ? "Reopen task" : "Complete task"}>
-                {task.status === "done" ? "✓" : ""}
-              </button>
+              <button type="button" className="task-toggle" onClick={() => void toggleTask(task)} disabled={taskBusy} aria-label={task.status === "done" ? "Reopen task" : "Complete task"} title={task.status === "done" ? "Reopen task" : "Complete task"}>{task.status === "done" ? "✓" : ""}</button>
               <button type="button" className="task-main-button" onClick={() => { setExpandedId(expanded ? null : task.id); setMessage(expanded ? "Task details closed." : "Task details opened."); }} aria-expanded={expanded}>
                 <span><b>{task.title}</b>{notes && <p>{notes}</p>}<small>{task.due_at ? `Due ${new Date(task.due_at).toLocaleString()}` : "No due date"}</small></span>
                 <span className="row-chevron" aria-hidden="true">{expanded ? "⌃" : "›"}</span>
               </button>
               <select className={`task-status-select status-${task.status}`} value={task.status} onChange={event => void changeStatus(task, event.target.value)} disabled={taskBusy} aria-label={`Status for ${task.title}`} title="Change task status">
-                <option value="open">Open</option>
-                <option value="in_progress">In progress</option>
-                <option value="done">Done</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="open">Open</option><option value="in_progress">In progress</option><option value="done">Done</option><option value="cancelled">Cancelled</option>
               </select>
               {expanded && (
                 <div className="task-details">
-                  <div className="task-detail-copy">
-                    <b>Task details</b>
-                    <p>{notes || "No notes were added to this task."}</p>
-                    <small>Created {new Date(task.created_at).toLocaleString()}</small>
-                  </div>
+                  <div className="task-detail-copy"><b>Task details</b><p>{notes || "No notes were added to this task."}</p><small>Created {new Date(task.created_at).toLocaleString()}</small></div>
                   <label>Due date<input type="datetime-local" value={dueEdits[task.id] || ""} onChange={event => setDueEdits(current => ({ ...current, [task.id]: event.target.value }))}/></label>
                   <div className="task-detail-actions">
                     <button type="button" className="button secondary" onClick={() => void saveDueDate(task)} disabled={taskBusy}>{taskBusy ? "Saving…" : "Save due date"}</button>
-                    {sourceId && <Link className="button secondary" href={`/app/messages?message=${sourceId}`}>Open source message</Link>}
+                    {sourceMessage && <Link className="button secondary" href={`/app/messages?message=${sourceMessage}`}>Open source message</Link>}
+                    {sourceEvent && <Link className="button secondary" href={`/app/calendar?event=${sourceEvent}`}>Open source event</Link>}
                     <button type="button" className="button danger" onClick={() => void deleteTask(task)} disabled={taskBusy}>Delete task</button>
                   </div>
                 </div>
               )}
             </article>
           );
-        }) : <div className="empty-inline"><b>No {filter === "all" ? "" : `${filter} `}tasks</b><p>Create one here or turn an imported message into a follow-up.</p></div>}
+        }) : <div className="empty-inline"><b>No {filter === "all" ? "" : `${filter} `}tasks</b><p>Create one here or turn an imported message or event into a follow-up.</p></div>}
       </div>
       {compact && visibleTasks.length < tasks.filter(task => task.status !== "cancelled").length && <p className="form-message">Showing the first five matching tasks. Use the filters above to narrow the list.</p>}
     </div>
