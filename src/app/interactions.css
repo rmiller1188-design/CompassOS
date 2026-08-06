@@ -6,6 +6,7 @@ button:disabled{cursor:not-allowed}.pill{cursor:default;user-select:none}.intera
 .icon-button:hover,.button.secondary:hover{border-color:color-mix(in srgb,var(--accent) 42%,var(--line));background:var(--accent-soft);color:var(--accent)}
 .button.primary:hover{filter:brightness(1.04);box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 24%,transparent)}
 .button.danger:hover{background:rgba(216,84,101,.1);border-color:rgba(216,84,101,.45)}
+.action-feedback,.form-message,.appearance-status{overflow-wrap:anywhere}.action-feedback:empty,.form-message:empty,.appearance-status:empty{display:none}
 .search-result{grid-template-columns:34px minmax(0,1fr) auto}.search-result .row-chevron{width:auto;height:auto;background:transparent;font-size:20px}
 .preview-action{justify-self:start;border-radius:9px;padding:7px 12px;background:var(--accent);color:#fff;font-size:8px;font-weight:800;cursor:default;user-select:none}
 html[data-theme="dark"] .message-tool-panel{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
