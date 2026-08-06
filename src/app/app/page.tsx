@@ -76,17 +76,17 @@ export default async function DashboardPage() {
         <Link className="text-link" href="/app/settings/connections">Manage accounts</Link>
       </section>
       <section className="card span-6">
-        <div className="section-heading"><div><p className="eyebrow">Messages</p><h2>Recent attention</h2></div><span className="pill">{unread.count || 0} imported</span></div>
-        <p className="muted">Open full imported message details and convert any message into a private or shared follow-up.</p>
+        <div className="section-heading"><div><p className="eyebrow">Messages</p><h2>Recent attention</h2></div><Link className="pill interactive-pill" href="/app/messages" title="Open imported messages">{unread.count || 0} imported</Link></div>
+        <p className="muted">Open full imported message details, generate a quick summary or local draft, and convert any message into a private or shared follow-up.</p>
         <Link className="button secondary" href="/app/messages">Open messages</Link>
       </section>
       <section className="card span-6">
-        <div className="section-heading"><div><p className="eyebrow">Calendar</p><h2>{nextEvent ? nextEvent.title : "No upcoming event"}</h2></div>{nextEvent && <span className="pill">{new Date(nextEvent.starts_at).toLocaleString()}</span>}</div>
+        <div className="section-heading"><div><p className="eyebrow">Calendar</p><h2>{nextEvent ? nextEvent.title : "No upcoming event"}</h2></div>{nextEvent && <Link className="pill interactive-pill" href={`/app/calendar?event=${nextEvent.id}`} title="Open this event">{new Date(nextEvent.starts_at).toLocaleString()}</Link>}</div>
         <p className="muted">Review imported event details and explicitly share selected events into Us.</p>
         <Link className="button secondary" href="/app/calendar">Open calendar</Link>
       </section>
-      <section className="card span-6">
-        <div className="section-heading"><div><p className="eyebrow">Follow-ups</p><h2>Private tasks</h2></div><span className="pill">{personalTasks.filter(task => task.status !== "done").length} open</span></div>
+      <section className="card span-6" id="private-tasks">
+        <div className="section-heading"><div><p className="eyebrow">Follow-ups</p><h2>Private tasks</h2></div><span className="metric-label">{personalTasks.filter(task => task.status !== "done").length} currently open</span></div>
         <TaskBoard workspaceId={profile.personal_workspace_id} initialTasks={personalTasks} compact/>
       </section>
       <section className="card span-6">
@@ -98,7 +98,7 @@ export default async function DashboardPage() {
       <section className="card span-6">
         <p className="eyebrow">Files</p>
         <h2>Private cloud file storage</h2>
-        <p className="muted">Private upload is functional. File preview, download, folders, and sharing controls are still pending.</p>
+        <p className="muted">Upload files privately, open them securely, download copies, and delete them with confirmation.</p>
         <Link className="button secondary" href="/app/files">Open files</Link>
       </section>
     </div>
