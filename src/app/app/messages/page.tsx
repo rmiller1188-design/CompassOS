@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MessageFollowUpActions } from "@/components/message-follow-up-actions";
+import { MessageUtilityActions } from "@/components/message-utility-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -91,7 +92,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   return (
     <div className="two-pane messages-two-pane">
       <section className="card list-pane">
-        <div className="section-heading"><div><p className="eyebrow">Unified</p><h2>Messages</h2></div><span className="pill">{items.length}</span></div>
+        <div className="section-heading"><div><p className="eyebrow">Unified</p><h2>Messages</h2></div><span className="pill" title="Imported message count">{items.length}</span></div>
         <div className="message-list">
           {items.length ? items.map(item => {
             const active = selected?.id === item.id;
@@ -99,7 +100,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
               <Link className={`message-row selectable-row${active ? " selected" : ""}`} href={`/app/messages?message=${item.id}`} key={item.id} aria-current={active ? "page" : undefined}>
                 <span className={`provider-icon ${item.provider}`}>{item.provider === "google" ? "G" : item.provider === "microsoft" ? "M" : "↗"}</span>
                 <div><b>{item.subject || item.sender || "Message"}</b><p>{item.preview || "No preview"}</p><small>{item.sender || item.channel} • {new Date(item.occurred_at).toLocaleString()}</small></div>
-                <span className="row-chevron">›</span>
+                <span className="row-chevron" aria-hidden="true">›</span>
               </Link>
             );
           }) : (
@@ -119,7 +120,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                 <p className="eyebrow">{selected.provider} · {selected.channel}</p>
                 <h1>{selected.subject || "Message"}</h1>
               </div>
-              <span className="pill">{thread.length > 1 ? `${thread.length} messages` : "1 message"}</span>
+              <span className="pill" title="Messages in this imported thread">{thread.length > 1 ? `${thread.length} messages` : "1 message"}</span>
             </div>
             <div className="detail-meta">
               <div><small>From</small><b>{selected.sender || "Unknown sender"}</b></div>
@@ -131,7 +132,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                 <article className={`thread-message${message.id === selected.id ? " selected" : ""}`} key={message.id}>
                   <div className="thread-message-heading">
                     <div><b>{message.sender || "Unknown sender"}</b><small>{new Date(message.occurred_at).toLocaleString()}</small></div>
-                    <span className="pill">{message.direction}</span>
+                    <span className="pill" title="Message direction">{message.direction}</span>
                   </div>
                   <div className="message-body">{message.body_text || message.preview || "No readable message content was imported."}</div>
                   {!message.body_text && <p className="detail-note">This item was synced before full-body import was enabled. Run Sync now again to refresh it.</p>}
@@ -140,11 +141,8 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
             </div>
             <div className="detail-actions action-bar">
               <MessageFollowUpActions messageId={selected.id} hasSharedWorkspace={hasSharedWorkspace}/>
-              <div className="action-cluster">
-                <button className="button secondary" disabled title="AI summaries require an OpenAI API key">Summarize</button>
-                <button className="button secondary" disabled title="Reply drafting and send approval are not implemented yet">Draft reply</button>
-              </div>
             </div>
+            <MessageUtilityActions subject={selected.subject} sender={selected.sender} body={selected.body_text} preview={selected.preview}/>
           </div>
         ) : (
           <div className="empty-state compact"><span className="empty-icon">✉</span><h2>Select a message</h2><p>Choose a message from the list to open its imported details.</p></div>
