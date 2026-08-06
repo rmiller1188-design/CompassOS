@@ -54,6 +54,9 @@ jobs:
       - name: Validate migration set
         run: node scripts/check-migrations.mjs
 
+      - name: Audit interactive controls
+        run: node scripts/check-interactions.mjs
+
       - name: Use public npm registry
         run: npm config set registry https://registry.npmjs.org/
 
