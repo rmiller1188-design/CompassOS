@@ -98,13 +98,7 @@ export function verifyReconciliationAdjudication(adjudication) {
   return hashObject(core) === decisionHash;
 }
 
-export function assertRetryAdmission({
-  reconciliation,
-  adjudication,
-  action,
-  newIdempotencyKeyHash,
-  now = new Date(),
-}) {
+export function assertRetryAdmission({ reconciliation, adjudication, action, newIdempotencyKeyHash, now = new Date() }) {
   const item = requireManualReviewCase(reconciliation);
   if (!verifyReconciliationAdjudication(adjudication)) throw new Error('Reconciliation adjudication integrity check failed');
   if (adjudication.outcome !== 'retry_eligible') throw new Error('Reconciliation adjudication does not permit retry admission');
@@ -129,12 +123,13 @@ export function assertRetryAdmission({
     retryApprovalRevision: action.approvalRevision,
     adjudicationHash: adjudication.decisionHash,
     evidenceRef: adjudication.evidenceRef,
+    newIdempotencyKeyHash: nextKeyHash,
     admittedAt: isoDate(now, 'Admission time'),
   };
 }
 
 export function createSupabaseAdjudicationStore({ client, now = () => new Date() }) {
-  if (!client?.from) throw new TypeError('Supabase service client is required');
+  if (!client?.from || !client?.rpc) throw new TypeError('Supabase service client is required');
 
   function assertResult(result, operation) {
     if (result?.error) {
@@ -168,6 +163,16 @@ export function createSupabaseAdjudicationStore({ client, now = () => new Date()
         created_at: now().toISOString(),
       };
       return assertResult(await client.from('outbound_reconciliation_adjudications').insert(row).select('*').single(), 'append reconciliation adjudication');
+    },
+
+    async consumeRetryGrant(admission) {
+      if (!admission?.allowed) throw new Error('Validated retry admission is required');
+      return assertResult(await client.rpc('consume_reconciliation_retry_grant', {
+        p_action_id: admission.actionId,
+        p_decision_hash: admission.adjudicationHash,
+        p_retry_approval_revision: admission.retryApprovalRevision,
+        p_new_idempotency_key_hash: admission.newIdempotencyKeyHash,
+      }), 'consume reconciliation retry grant');
     },
   };
 }
