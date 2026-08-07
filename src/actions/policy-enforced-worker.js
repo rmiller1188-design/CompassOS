@@ -19,9 +19,7 @@ function requireFunction(value, name) {
 }
 
 function requireExecutionContext(context, claim) {
-  if (!context?.action || !context?.account || !context?.payload) {
-    throw new TypeError('Execution context must include action, account, and payload');
-  }
+  if (!context?.action || !context?.account || !context?.payload) throw new TypeError('Execution context must include action, account, and payload');
   const action = context.action;
   const expected = {
     id: claim.action.id,
@@ -31,19 +29,11 @@ function requireExecutionContext(context, claim) {
     payloadHash: claim.action.payloadHash,
     payloadRevision: claim.action.payloadRevision,
   };
-  for (const [field, value] of Object.entries(expected)) {
-    if (action[field] !== value) throw new Error(`Execution context mismatch: ${field}`);
-  }
+  for (const [field, value] of Object.entries(expected)) if (action[field] !== value) throw new Error(`Execution context mismatch: ${field}`);
   if (action.status !== 'executing') throw new Error('Claimed outbound action is not executing');
-  if (context.account.id && context.account.id !== action.providerAccountId) {
-    throw new Error('Connected account does not match claimed outbound action');
-  }
-  if (context.account.provider !== action.provider) {
-    throw new Error('Connected account provider does not match outbound action');
-  }
-  if (!action.approvedPayloadHash || !Number.isInteger(action.approvalRevision)) {
-    throw new Error('Persisted approval binding is missing');
-  }
+  if (context.account.id && context.account.id !== action.providerAccountId) throw new Error('Connected account does not match claimed outbound action');
+  if (context.account.provider !== action.provider) throw new Error('Connected account provider does not match outbound action');
+  if (!action.approvedPayloadHash || !Number.isInteger(action.approvalRevision)) throw new Error('Persisted approval binding is missing');
   return context;
 }
 
@@ -54,7 +44,10 @@ function policyInput(action) {
     accountId: action.providerAccountId,
     provider: action.provider,
     actionType: action.actionType,
-    state: action.status,
+    // The atomic lease transition changes approved -> executing. Policy evaluates the
+    // persisted approval binding, while requireExecutionContext separately proves the
+    // current queue state is executing and bound to this lease.
+    state: 'approved',
     payloadRevision: action.payloadRevision,
     payloadHash: action.payloadHash,
     approvedPayloadHash: action.approvedPayloadHash,
@@ -65,29 +58,19 @@ function policyInput(action) {
 function resolveAdapter({ action, mailAdapters, calendarAdapters }) {
   const adapters = action.actionType === MAIL_ACTION_TYPE ? mailAdapters : calendarAdapters;
   const adapter = adapters?.[action.provider];
-  if (!adapter || adapter.provider !== action.provider || typeof adapter.execute !== 'function') {
-    throw new Error('Provider execution adapter is unavailable');
-  }
+  if (!adapter || adapter.provider !== action.provider || typeof adapter.execute !== 'function') throw new Error('Provider execution adapter is unavailable');
   return adapter;
 }
 
 function assertActionConsentAndPayload(context) {
   if (context.action.actionType === MAIL_ACTION_TYPE) {
     assertMailSendConsent(context.account);
-    assertApprovedPayloadUnchanged({
-      approvedPayloadHash: context.action.approvedPayloadHash,
-      payload: context.payload,
-    });
+    assertApprovedPayloadUnchanged({ approvedPayloadHash: context.action.approvedPayloadHash, payload: context.payload });
     return;
   }
-  if (!CALENDAR_ACTION_TYPES.has(context.action.actionType)) {
-    throw new Error('Unsupported outbound action type');
-  }
+  if (!CALENDAR_ACTION_TYPES.has(context.action.actionType)) throw new Error('Unsupported outbound action type');
   assertCalendarWriteConsent(context.account);
-  assertApprovedCalendarPayloadUnchanged({
-    approvedPayloadHash: context.action.approvedPayloadHash,
-    payload: context.payload,
-  });
+  assertApprovedCalendarPayloadUnchanged({ approvedPayloadHash: context.action.approvedPayloadHash, payload: context.payload });
 }
 
 async function failClaim({ transition, claim, error, policyDecision = null }) {
@@ -122,7 +105,6 @@ export async function executePolicyEnforcedClaim({
   requireFunction(recordPolicyDecision, 'Policy-decision recorder');
   requireFunction(getReceiptByIdempotencyKey, 'Receipt lookup');
   requireFunction(transition, 'Action transition function');
-
   assertLeaseMatchesAction(claim.lease, claim.action, now());
 
   let context;
@@ -130,21 +112,9 @@ export async function executePolicyEnforcedClaim({
   try {
     context = requireExecutionContext(await loadExecutionContext(claim.action), claim);
     assertLeaseMatchesAction(claim.lease, context.action, now());
-
-    const policy = await loadPolicy({
-      userId: context.action.userId,
-      accountId: context.action.providerAccountId,
-      provider: context.action.provider,
-      actionType: context.action.actionType,
-    });
-    decision = evaluateRuntimeAction({
-      policy,
-      action: policyInput(context.action),
-      now: now(),
-      maxPolicyAgeMs,
-    });
+    const policy = await loadPolicy({ userId: context.action.userId, accountId: context.action.providerAccountId, provider: context.action.provider, actionType: context.action.actionType });
+    decision = evaluateRuntimeAction({ policy, action: policyInput(context.action), now: now(), maxPolicyAgeMs });
     if (!verifyRuntimeActionDecision(decision)) throw new Error('Runtime policy decision integrity check failed');
-
     await recordPolicyDecision({ action: context.action, decision });
     if (decision.decision !== 'allow') {
       const error = new Error(`Outbound execution blocked by runtime policy: ${decision.failedChecks.join(', ')}`);
@@ -154,40 +124,15 @@ export async function executePolicyEnforcedClaim({
     }
 
     assertActionConsentAndPayload(context);
-
     const existing = await getReceiptByIdempotencyKey(context.action.idempotencyKey);
     if (existing) {
-      await transition(claim.action.id, 'succeeded', {
-        expectedRevision: claim.action.revision,
-        metadata: {
-          workerId: claim.lease.workerId,
-          providerReceiptId: existing.providerMessageId || existing.providerEventId || existing.id || null,
-          policyDecisionHash: decision.decisionHash,
-          idempotentReplay: true,
-        },
-      });
+      await transition(claim.action.id, 'succeeded', { expectedRevision: claim.action.revision, metadata: { workerId: claim.lease.workerId, providerReceiptId: existing.providerMessageId || existing.providerEventId || existing.id || null, policyDecisionHash: decision.decisionHash, idempotentReplay: true } });
       return existing;
     }
 
-    const adapter = resolveAdapter({
-      action: context.action,
-      mailAdapters,
-      calendarAdapters,
-    });
-    const receipt = await adapter.execute({
-      account: context.account,
-      payload: context.payload,
-      idempotencyKey: context.action.idempotencyKey,
-    });
-
-    await transition(claim.action.id, 'succeeded', {
-      expectedRevision: claim.action.revision,
-      metadata: {
-        workerId: claim.lease.workerId,
-        providerReceiptId: receipt?.providerMessageId || receipt?.providerEventId || receipt?.id || null,
-        policyDecisionHash: decision.decisionHash,
-      },
-    });
+    const adapter = resolveAdapter({ action: context.action, mailAdapters, calendarAdapters });
+    const receipt = await adapter.execute({ account: context.account, payload: context.payload, idempotencyKey: context.action.idempotencyKey });
+    await transition(claim.action.id, 'succeeded', { expectedRevision: claim.action.revision, metadata: { workerId: claim.lease.workerId, providerReceiptId: receipt?.providerMessageId || receipt?.providerEventId || receipt?.id || null, policyDecisionHash: decision.decisionHash } });
     return receipt;
   } catch (error) {
     await failClaim({ transition, claim, error, policyDecision: decision });
