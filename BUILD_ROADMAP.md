@@ -138,7 +138,7 @@
 - [x] Pass repository validation on the exact final documentation head
 - [ ] Apply the reconciliation migration and exercise live Gmail/Microsoft ambiguous-outcome recovery
 
-### P7H — Manual reconciliation adjudication and retry admission — VALIDATION PENDING
+### P7H — Manual reconciliation adjudication and retry admission — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Deterministic manual-review adjudications bound to action, owner, account, payload, approval, reviewer, and evidence
 - [x] Retry eligibility requires explicit provider-confirmed absence evidence
 - [x] Confirmed-success adjudication requires a provider receipt identifier
@@ -147,7 +147,7 @@
 - [x] Service-role-only atomic retry-grant consumption prevents replay
 - [x] Owner-readable adjudication evidence with browser writes denied by RLS
 - [x] Deterministic integrity, evidence, approval, payload, idempotency, expiry, and no-retry tests
-- [ ] Pass repository validation on the exact final branch head
+- [x] Pass repository validation on the exact final branch head
 - [ ] Apply the adjudication migration and exercise a live manual-review/retry drill against Supabase and provider sandboxes
 
 - [ ] Apply and verify Supabase migrations with service-role boundaries
