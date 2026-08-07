@@ -115,7 +115,7 @@
 - [x] Pass repository validation on the exact branch head
 - [ ] Wire policy snapshots to a live service-role execution worker and incident-control surface
 
-### P7F — Policy-enforced execution worker — VALIDATION PENDING
+### P7F — Policy-enforced execution worker — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Persist exact approved payload hash and payload revision at the database transition boundary
 - [x] Reject mutation of approved or executing outbound payloads in PostgreSQL
 - [x] Require an exact persisted approval binding before an action may remain executing
@@ -124,7 +124,7 @@
 - [x] Re-check provider write consent and approved payload integrity at the worker boundary
 - [x] Preserve idempotency receipt short-circuiting and bind terminal audit metadata to the policy decision hash
 - [x] Deterministic allow, emergency-stop, decision-persistence, approval-binding, idempotency, and lease-drift tests
-- [ ] Pass repository validation on the exact branch head
+- [x] Pass repository validation on the implementation branch head
 - [ ] Apply the approval-binding migration and exercise a live service-role worker against Supabase and provider sandboxes
 
 - [ ] Apply and verify Supabase migrations with service-role boundaries
