@@ -2,7 +2,7 @@
 
 ## Status
 
-Core implementation complete. Reviewable status requires repository validation on the exact final branch head. Live Supabase/provider validation remains blocked by unavailable configured infrastructure.
+**REVIEWABLE CORE / LIVE VALIDATION BLOCKED.** GitHub Actions `Validate production core` run 327 passed the P7K source merged against the P7J base with 192/192 deterministic tests and zero failures plus production-core syntax checks. This documentation-final head must also pass repository validation before the reviewable claim is considered final. Live Supabase/provider validation remains blocked by unavailable configured infrastructure.
 
 ## Problem closed
 
@@ -31,9 +31,9 @@ P7G–P7J established ambiguous-execution quarantine, provider-correlated lookup
 - a provider query failure can never be converted into provider-confirmed absence
 - absence evidence alone cannot resend anything; P7H still requires manual adjudication, unchanged payload, a newer explicit approval, a new idempotency key, and atomic single-use retry-grant consumption
 
-## Validation target
+## Validation
 
-`npm run validate` must pass on the exact final branch head. The validation command performs syntax checks across the production core and executes the complete deterministic Node test suite.
+GitHub Actions run 327 executed Node 22.23.1 and `npm run validate` against the P7K/P7J PR merge. The command completed all production-core syntax checks and 192/192 tests with zero failures, zero cancellations, and zero skips. A subsequent run on the documentation-final head is required before final milestone notification.
 
 ## Infrastructure blockers
 
