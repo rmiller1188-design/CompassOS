@@ -1,6 +1,6 @@
 # P7H Review — Manual Reconciliation Adjudication and Retry Admission
 
-Status: validation pending on the exact final branch head.
+Status: reviewable core after exact final branch-head validation; live infrastructure validation remains blocked. Exact final validation evidence is recorded on draft PR #33.
 
 ## Purpose
 
@@ -30,9 +30,9 @@ P7G intentionally quarantines outbound mail/calendar executions when the provide
 - provider credentials and token material are not part of the adjudication record
 - no unsupported iMessage access and no fake production evidence
 
-## Validation target
+## Validation
 
-The strongest available repository validation is `npm run validate`, which syntax-checks the production modules and executes the complete Node test suite. This artifact must not be marked reviewable until GitHub Actions passes on the exact final branch head.
+The strongest available repository validation is `npm run validate`, which syntax-checks the production modules and executes the complete Node test suite. GitHub Actions run 292 passed on the implementation/documentation head before this final artifact/roadmap status commit. The milestone is only considered reviewable after the workflow also passes on the exact final branch head referenced by PR #33.
 
 ## Infrastructure blockers
 
