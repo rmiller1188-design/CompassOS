@@ -104,7 +104,7 @@
 - [ ] Pass repository validation on the exact branch head
 - [ ] Execute a real canary rollout and rollback drill with live infrastructure evidence
 
-### P7E — Runtime outbound-action policy and emergency stops — VALIDATION PENDING
+### P7E — Runtime outbound-action policy and emergency stops — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Immutable runtime action-policy snapshots with deterministic policy hashes
 - [x] Global, provider, account, and action-scoped emergency block rules
 - [x] Expiring block rules and future-rule activation protection
@@ -112,7 +112,7 @@
 - [x] Stale or future policy snapshots fail closed
 - [x] Deterministic action-decision hashes and tamper detection
 - [x] Deterministic scope-isolation, approval-mutation, expiry, stale-policy, malformed-input, and tamper tests
-- [ ] Pass repository validation on the exact branch head
+- [x] Pass repository validation on the exact branch head
 - [ ] Wire policy snapshots to a live service-role execution worker and incident-control surface
 
 - [ ] Apply and verify Supabase migrations with service-role boundaries
