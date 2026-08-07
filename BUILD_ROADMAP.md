@@ -135,8 +135,20 @@
 - [x] Store only a SHA-256 digest of idempotency keys in reconciliation records
 - [x] Resolve from existing local receipts or provider-confirmed outcomes; unknown state requires manual review
 - [x] Deterministic ambiguity, binding, receipt-recovery, unknown-outcome, and worker-quarantine tests
-- [x] Pass repository validation on the implementation head; final documentation head validation required before completion
+- [x] Pass repository validation on the exact final documentation head
 - [ ] Apply the reconciliation migration and exercise live Gmail/Microsoft ambiguous-outcome recovery
+
+### P7H — Manual reconciliation adjudication and retry admission — VALIDATION PENDING
+- [x] Deterministic manual-review adjudications bound to action, owner, account, payload, approval, reviewer, and evidence
+- [x] Retry eligibility requires explicit provider-confirmed absence evidence
+- [x] Confirmed-success adjudication requires a provider receipt identifier
+- [x] Retry admission requires unchanged payload, a newer explicit approval revision, and a newly derived idempotency key
+- [x] Short-lived retry grants fail closed after expiration
+- [x] Service-role-only atomic retry-grant consumption prevents replay
+- [x] Owner-readable adjudication evidence with browser writes denied by RLS
+- [x] Deterministic integrity, evidence, approval, payload, idempotency, expiry, and no-retry tests
+- [ ] Pass repository validation on the exact final branch head
+- [ ] Apply the adjudication migration and exercise a live manual-review/retry drill against Supabase and provider sandboxes
 
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
