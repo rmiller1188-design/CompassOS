@@ -2,7 +2,7 @@
 
 ## Status
 
-Core implementation is complete; repository validation must pass on the exact final branch head before this milestone is marked reviewable. Live Supabase and provider execution remain infrastructure-blocked.
+**REVIEWABLE CORE MILESTONE / LIVE VALIDATION BLOCKED.** GitHub Actions `Validate production core` run 260 passed on the implementation head. The final documentation-only head is required to pass the same workflow before milestone notification. Live Supabase and provider execution remain infrastructure-blocked.
 
 ## Scope
 
@@ -33,7 +33,7 @@ P7F closes the gap between the P7E runtime emergency policy and the P6 action qu
 
 ## Deterministic validation coverage
 
-`test/policy-enforced-worker.test.js` covers: normal allowed execution, emergency-stop blocking, fail-closed policy-decision persistence, stale approval revisions, idempotent receipt reuse, and execution-context drift from the lease.
+`test/policy-enforced-worker.test.js` covers normal allowed execution, emergency-stop blocking, fail-closed policy-decision persistence, stale approval revisions, idempotent receipt reuse, and execution-context drift from the lease. `npm run validate` also syntax-checks the worker and runs the complete production-core Node test suite.
 
 ## Infrastructure blockers
 
