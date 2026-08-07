@@ -150,6 +150,17 @@
 - [x] Pass repository validation on the exact final branch head
 - [ ] Apply the adjudication migration and exercise a live manual-review/retry drill against Supabase and provider sandboxes
 
+### P7I — Provider-correlated reconciliation lookups — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Derive one-way SHA-256 provider correlation markers from outbound idempotency keys
+- [x] Stamp Gmail replies with deterministic RFC822 Message-ID correlation
+- [x] Query Gmail Sent mail by exact `rfc822msgid:` correlation
+- [x] Create Microsoft reply drafts with immutable IDs and stamp an exact single-value extended-property correlation
+- [x] Query Microsoft Sent Items by the exact extended-property id/value pair
+- [x] Confirm success only for one exact provider match; duplicate matches fail closed as unknown
+- [x] Confirm absence only after a successful zero-match provider query; provider failures never become absence evidence
+- [x] Deterministic correlation, provider-query, privacy, duplicate-match, and send-sequence tests
+- [ ] Validate live Gmail Message-ID persistence and Microsoft extended-property persistence/search against provider sandboxes
+
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
 - [ ] Run user-approved OpenAI quality, latency, and cost evaluation
