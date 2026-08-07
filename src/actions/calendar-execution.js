@@ -1,4 +1,9 @@
 import { createHash } from "node:crypto";
+import {
+  buildProviderCorrelation,
+  GOOGLE_CALENDAR_COMPASS_PROPERTY,
+  MICROSOFT_CALENDAR_COMPASS_PROPERTY_ID,
+} from "./provider-reconciliation.js";
 
 const CALENDAR_WRITE_SCOPES = Object.freeze({
   google: new Set(["https://www.googleapis.com/auth/calendar.events"]),
@@ -110,7 +115,7 @@ export function assertApprovedCalendarPayloadUnchanged({ approvedPayloadHash, pa
   return true;
 }
 
-function googleEvent(payload) {
+function googleEvent(payload, correlation) {
   return {
     summary: payload.title,
     description: payload.description,
@@ -118,6 +123,7 @@ function googleEvent(payload) {
     start: { dateTime: payload.startsAt, timeZone: payload.timezone },
     end: { dateTime: payload.endsAt, timeZone: payload.timezone },
     attendees: payload.attendees.map((a) => ({ email: a.email, displayName: a.displayName || undefined, optional: a.optional })),
+    extendedProperties: { private: { [GOOGLE_CALENDAR_COMPASS_PROPERTY]: correlation.digest } },
   };
 }
 
@@ -127,20 +133,24 @@ export function createGoogleCalendarActionAdapter({ fetchImpl = globalThis.fetch
     provider: "google",
     async execute({ account, payload, idempotencyKey }) {
       const token = await tokenResolver(account);
+      const correlation = buildProviderCorrelation(idempotencyKey);
       const base = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(payload.calendarId)}/events`;
       let url = base;
       let method = "POST";
       let body;
-      if (payload.actionType === "calendar.create") body = googleEvent(payload);
+      if (payload.actionType === "calendar.create") body = googleEvent(payload, correlation);
       if (payload.actionType === "calendar.update") {
         url = `${base}/${encodeURIComponent(payload.providerEventId)}?sendUpdates=all`;
         method = "PATCH";
-        body = googleEvent(payload);
+        body = googleEvent(payload, correlation);
       }
       if (payload.actionType === "calendar.respond") {
         url = `${base}/${encodeURIComponent(payload.providerEventId)}?sendUpdates=all`;
         method = "PATCH";
-        body = { attendees: payload.attendees.map((a) => ({ email: a.email, responseStatus: a.email === account.email ? payload.responseStatus : undefined })) };
+        body = {
+          attendees: payload.attendees.map((a) => ({ email: a.email, responseStatus: a.email === account.email ? payload.responseStatus : undefined })),
+          extendedProperties: { private: { [GOOGLE_CALENDAR_COMPASS_PROPERTY]: correlation.digest } },
+        };
       }
       const response = await fetchImpl(url, { method, headers: { authorization: `Bearer ${token}`, "content-type": "application/json", "x-compass-idempotency-key": idempotencyKey }, body: JSON.stringify(body) });
       const result = await response.json().catch(() => ({}));
@@ -150,7 +160,7 @@ export function createGoogleCalendarActionAdapter({ fetchImpl = globalThis.fetch
   };
 }
 
-function microsoftEvent(payload) {
+function microsoftEvent(payload, correlation) {
   return {
     subject: payload.title,
     body: { contentType: "Text", content: payload.description || "" },
@@ -158,6 +168,7 @@ function microsoftEvent(payload) {
     start: { dateTime: payload.startsAt, timeZone: payload.timezone },
     end: { dateTime: payload.endsAt, timeZone: payload.timezone },
     attendees: payload.attendees.map((a) => ({ emailAddress: { address: a.email, name: a.displayName || undefined }, type: a.optional ? "optional" : "required" })),
+    singleValueExtendedProperties: [{ id: MICROSOFT_CALENDAR_COMPASS_PROPERTY_ID, value: correlation.digest }],
   };
 }
 
@@ -167,9 +178,10 @@ export function createMicrosoftCalendarActionAdapter({ fetchImpl = globalThis.fe
     provider: "microsoft",
     async execute({ account, payload, idempotencyKey }) {
       const token = await tokenResolver(account);
+      const correlation = buildProviderCorrelation(idempotencyKey);
       let url = "https://graph.microsoft.com/v1.0/me/events";
       let method = "POST";
-      let body = microsoftEvent(payload);
+      let body = microsoftEvent(payload, correlation);
       if (payload.actionType === "calendar.update") {
         url += `/${encodeURIComponent(payload.providerEventId)}`;
         method = "PATCH";
