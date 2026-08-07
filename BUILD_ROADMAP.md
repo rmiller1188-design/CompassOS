@@ -87,7 +87,7 @@
 
 ### P7C — Release candidate and promotion gates — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Immutable release-candidate manifest bound to commit, artifact, migrations, and evidence ledger
-- [x] Deterministic candidate and promotion-report hashes
+- [x] Deterministic candidate and promotion-report hashing
 - [x] Fail-closed production-readiness, migration, evidence-ledger, and commit binding checks
 - [x] Candidate-specific approval threshold, expiration, rejection, and mutation invalidation
 - [x] Duplicate-approver and malformed-input rejection
@@ -114,6 +114,18 @@
 - [x] Deterministic scope-isolation, approval-mutation, expiry, stale-policy, malformed-input, and tamper tests
 - [x] Pass repository validation on the exact branch head
 - [ ] Wire policy snapshots to a live service-role execution worker and incident-control surface
+
+### P7F — Policy-enforced execution worker — VALIDATION PENDING
+- [x] Persist exact approved payload hash and payload revision at the database transition boundary
+- [x] Reject mutation of approved or executing outbound payloads in PostgreSQL
+- [x] Require an exact persisted approval binding before an action may remain executing
+- [x] Enforce current runtime policy after atomic lease acquisition and before any provider adapter call
+- [x] Persist the policy decision before provider execution and fail closed if decision persistence fails
+- [x] Re-check provider write consent and approved payload integrity at the worker boundary
+- [x] Preserve idempotency receipt short-circuiting and bind terminal audit metadata to the policy decision hash
+- [x] Deterministic allow, emergency-stop, decision-persistence, approval-binding, idempotency, and lease-drift tests
+- [ ] Pass repository validation on the exact branch head
+- [ ] Apply the approval-binding migration and exercise a live service-role worker against Supabase and provider sandboxes
 
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
