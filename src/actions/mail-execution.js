@@ -1,4 +1,5 @@
 import { assertApprovedPayloadUnchanged } from "./reply-draft.js";
+import { buildProviderCorrelation, MICROSOFT_COMPASS_PROPERTY_ID } from "./provider-reconciliation.js";
 
 const SEND_SCOPES = {
   google: new Set(["https://www.googleapis.com/auth/gmail.send"]),
@@ -11,6 +12,10 @@ function providerError(response, payload) {
   error.code = payload?.error?.code || payload?.error || null;
   error.retryAfterMs = Number(response.headers?.get?.("retry-after") || 0) * 1000 || null;
   return error;
+}
+
+async function responseJson(response) {
+  return response.json().catch(() => ({}));
 }
 
 export function assertMailSendConsent(account) {
@@ -29,11 +34,13 @@ export function createGmailReplyAdapter({ fetchImpl = globalThis.fetch, tokenRes
     provider: "google",
     async execute({ account, payload, idempotencyKey }) {
       const token = await tokenResolver(account);
+      const correlation = buildProviderCorrelation(idempotencyKey);
       const mime = [
         `To: ${payload.to.join(", ")}`,
         payload.cc.length ? `Cc: ${payload.cc.join(", ")}` : null,
         payload.bcc.length ? `Bcc: ${payload.bcc.join(", ")}` : null,
         `Subject: ${payload.subject}`,
+        `Message-ID: ${correlation.gmailMessageId}`,
         `In-Reply-To: ${payload.inReplyToMessageId}`,
         `References: ${payload.inReplyToMessageId}`,
         "Content-Type: text/plain; charset=utf-8",
@@ -46,9 +53,15 @@ export function createGmailReplyAdapter({ fetchImpl = globalThis.fetch, tokenRes
         headers: { authorization: `Bearer ${token}`, "content-type": "application/json", "x-compass-idempotency-key": idempotencyKey },
         body: JSON.stringify({ raw, threadId: payload.threadKey }),
       });
-      const result = await response.json().catch(() => ({}));
+      const result = await responseJson(response);
       if (!response.ok) throw providerError(response, result);
-      return { provider: "google", providerMessageId: result.id || null, providerThreadId: result.threadId || payload.threadKey, providerRequestId: response.headers?.get?.("x-request-id") || null };
+      return {
+        provider: "google",
+        providerMessageId: result.id || null,
+        providerThreadId: result.threadId || payload.threadKey,
+        providerRequestId: response.headers?.get?.("x-request-id") || null,
+        correlationHash: correlation.digest,
+      };
     },
   };
 }
@@ -59,16 +72,50 @@ export function createMicrosoftReplyAdapter({ fetchImpl = globalThis.fetch, toke
     provider: "microsoft",
     async execute({ account, payload, idempotencyKey }) {
       const token = await tokenResolver(account);
-      const response = await fetchImpl(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(payload.inReplyToMessageId)}/reply`, {
+      const correlation = buildProviderCorrelation(idempotencyKey);
+      const commonHeaders = {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+        "client-request-id": idempotencyKey,
+        "return-client-request-id": "true",
+        Prefer: 'IdType="ImmutableId"',
+      };
+
+      const draftResponse = await fetchImpl(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(payload.inReplyToMessageId)}/createReply`, {
         method: "POST",
-        headers: { authorization: `Bearer ${token}`, "content-type": "application/json", "client-request-id": idempotencyKey, "return-client-request-id": "true" },
-        body: JSON.stringify({ message: { subject: payload.subject, body: { contentType: "Text", content: payload.bodyText }, toRecipients: payload.to.map((address) => ({ emailAddress: { address } })), ccRecipients: payload.cc.map((address) => ({ emailAddress: { address } })), bccRecipients: payload.bcc.map((address) => ({ emailAddress: { address } })) } }),
+        headers: commonHeaders,
+        body: JSON.stringify({ message: { body: { contentType: "Text", content: payload.bodyText } } }),
       });
-      if (!response.ok) {
-        const result = await response.json().catch(() => ({}));
-        throw providerError(response, result);
-      }
-      return { provider: "microsoft", providerMessageId: null, providerThreadId: payload.threadKey, providerRequestId: response.headers?.get?.("request-id") || null };
+      const draft = await responseJson(draftResponse);
+      if (!draftResponse.ok) throw providerError(draftResponse, draft);
+      if (!draft.id) throw new Error("Microsoft reply draft did not return an immutable message id");
+
+      const patchResponse = await fetchImpl(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}`, {
+        method: "PATCH",
+        headers: commonHeaders,
+        body: JSON.stringify({
+          subject: payload.subject,
+          body: { contentType: "Text", content: payload.bodyText },
+          toRecipients: payload.to.map((address) => ({ emailAddress: { address } })),
+          ccRecipients: payload.cc.map((address) => ({ emailAddress: { address } })),
+          bccRecipients: payload.bcc.map((address) => ({ emailAddress: { address } })),
+          singleValueExtendedProperties: [{ id: MICROSOFT_COMPASS_PROPERTY_ID, value: correlation.microsoftPropertyValue }],
+        }),
+      });
+      if (!patchResponse.ok) throw providerError(patchResponse, await responseJson(patchResponse));
+
+      const sendResponse = await fetchImpl(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}/send`, {
+        method: "POST",
+        headers: { ...commonHeaders, "content-length": "0" },
+      });
+      if (!sendResponse.ok) throw providerError(sendResponse, await responseJson(sendResponse));
+      return {
+        provider: "microsoft",
+        providerMessageId: draft.id,
+        providerThreadId: draft.conversationId || payload.threadKey,
+        providerRequestId: sendResponse.headers?.get?.("request-id") || draftResponse.headers?.get?.("request-id") || null,
+        correlationHash: correlation.digest,
+      };
     },
   };
 }
