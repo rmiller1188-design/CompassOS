@@ -173,6 +173,19 @@
 - [x] Pass repository validation on the implementation head (184/184 tests)
 - [ ] Validate Google private extended-property and Microsoft event extended-property persistence/search against live provider sandboxes
 
+### P7K — Reconciliation orchestration and evidence handoff — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Bind reconciliation lookup to the exact action, owner, connected account, provider, action type, payload hash, and payload revision
+- [x] Persist deterministic SHA-256 provider reconciliation observations as immutable evidence
+- [x] Preserve provider-confirmed absence as manual-review evidence rather than terminal retry authority
+- [x] Expose only `provider_confirmed_absence` evidence references to P7H adjudication
+- [x] Keep transient provider lookup failures pending for later lookup
+- [x] Route authentication failures to reconnect/manual review without manufacturing absence evidence
+- [x] Require a concrete provider receipt id before provider-confirmed terminal success
+- [x] Service-role-only evidence writes with owner-readable Supabase RLS
+- [x] Deterministic absence, success, unknown, transient, auth, context-drift, and evidence-hash tests
+- [x] Pass repository validation on the implementation/documentation candidate (192/192 tests); final documentation-head CI must remain green
+- [ ] Apply the provider-evidence migration and run a live quarantine → lookup → evidence → adjudication → fresh approval → retry drill
+
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
 - [ ] Run user-approved OpenAI quality, latency, and cost evaluation
