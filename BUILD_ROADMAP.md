@@ -154,12 +154,24 @@
 - [x] Derive one-way SHA-256 provider correlation markers from outbound idempotency keys
 - [x] Stamp Gmail replies with deterministic RFC822 Message-ID correlation
 - [x] Query Gmail Sent mail by exact `rfc822msgid:` correlation
-- [x] Create Microsoft reply drafts with immutable IDs and stamp an exact single-value extended-property correlation
+- [x] Create Microsoft reply drafts with immutable IDs and stamp an exact single-value extended-property correlation marker
 - [x] Query Microsoft Sent Items by the exact extended-property id/value pair
 - [x] Confirm success only for one exact provider match; duplicate matches fail closed as unknown
 - [x] Confirm absence only after a successful zero-match provider query; provider failures never become absence evidence
 - [x] Deterministic correlation, provider-query, privacy, duplicate-match, and send-sequence tests
 - [ ] Validate live Gmail Message-ID persistence and Microsoft extended-property persistence/search against provider sandboxes
+
+### P7J — Calendar-correlated reconciliation lookups — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Stamp Google calendar create/update/respond mutations with a one-way private extended-property correlation digest
+- [x] Stamp Microsoft calendar create/update mutations with an exact single-value extended-property correlation digest
+- [x] Query Google and Microsoft calendar creates by exact provider-side correlation with duplicate-match fail-closed behavior
+- [x] Reconcile known Google/Microsoft event mutations without treating a missing event as proof of non-execution
+- [x] Reconcile Microsoft attendee responses by desired provider state while keeping mismatches manual-review only
+- [x] Route calendar reconciliation separately from mail reconciliation by action type
+- [x] Keep raw idempotency keys and provider tokens out of reconciliation evidence and query URLs
+- [x] Deterministic stamping, lookup, duplicate, missing-resource, desired-state, routing, and provider-error tests
+- [x] Pass repository validation on the implementation head (184/184 tests)
+- [ ] Validate Google private extended-property and Microsoft event extended-property persistence/search against live provider sandboxes
 
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
