@@ -2,7 +2,7 @@
 
 ## Review status
 
-**REVIEWABLE CORE / LIVE VALIDATION BLOCKED.** GitHub Actions `Validate production core` run 242 passed after the code fix on head `cdb44ee3f951973232f9f7f14a6b0d7fd7fe9396`. The final documentation-only head must also pass the repository workflow before the PR status is updated to exact-head validated.
+**REVIEWABLE CORE / LIVE VALIDATION BLOCKED.** GitHub Actions `Validate production core` run 248 passed on exact branch head `98eef85a5554da70115adcb6af6c6210971ecb3b` before this status-only review-artifact update. Repository validation is required again on the resulting documentation-only head before the PR is reported as exact-head validated.
 
 ## Purpose
 
