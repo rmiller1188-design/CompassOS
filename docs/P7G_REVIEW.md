@@ -2,7 +2,7 @@
 
 ## Status
 
-Core milestone is reviewable only after repository validation passes on the exact branch head. Live provider/database reconciliation remains infrastructure-blocked.
+**REVIEWABLE CORE MILESTONE.** GitHub Actions `Validate production core` run 275 passed on implementation head `1ea1bd162cb9d4fac29b106e3828dcebe305276d`. Live provider/database reconciliation remains infrastructure-blocked, and the final documentation head must also pass repository validation before this branch is considered complete.
 
 ## Production problem closed
 
@@ -34,9 +34,9 @@ P7G changes the failure model so ambiguous outcomes are quarantined for reconcil
 - unresolved provider state requires manual review rather than resend
 - no unsupported iMessage access and no fake production evidence
 
-## Validation target
+## Validation
 
-`npm run validate` syntax-checks the reconciliation module and the complete production core, then executes the full Node test suite. New deterministic tests cover ambiguity classification, secret-safe idempotency binding, reconciliation construction, definitive-failure rejection, local receipt recovery, provider-confirmed success/absence, unknown outcomes, worker quarantine, retry suppression, and post-provider receipt-persistence failure.
+GitHub Actions `Validate production core` run 275 succeeded on implementation head `1ea1bd162cb9d4fac29b106e3828dcebe305276d`. `npm run validate` syntax-checked the reconciliation module and complete production core, then executed the full Node test suite. New deterministic tests cover ambiguity classification, secret-safe idempotency binding, reconciliation construction, definitive-failure rejection, local receipt recovery, provider-confirmed success/absence, unknown outcomes, worker quarantine, retry suppression, and post-provider receipt-persistence failure.
 
 ## Infrastructure blockers
 
