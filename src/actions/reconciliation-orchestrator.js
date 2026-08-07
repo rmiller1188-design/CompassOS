@@ -55,6 +55,7 @@ export function buildProviderReconciliationEvidence({ reconciliation, outcome, o
   const evidence = outcome.evidence && typeof outcome.evidence === 'object' ? outcome.evidence : {};
   const core = {
     actionId: item.actionId,
+    userId: item.userId,
     accountId: item.accountId,
     provider: item.provider,
     actionType: item.actionType,
@@ -160,6 +161,7 @@ export function createSupabaseReconciliationEvidenceStore({ client, now = () => 
       if (!evidence?.evidenceHash || evidence.evidenceRef !== `sha256:${evidence.evidenceHash}`) throw new Error('Validated reconciliation evidence is required');
       const row = {
         action_id: evidence.actionId,
+        user_id: evidence.userId,
         account_id: evidence.accountId,
         provider: evidence.provider,
         action_type: evidence.actionType,
