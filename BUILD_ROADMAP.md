@@ -127,6 +127,17 @@
 - [x] Pass repository validation on the implementation branch head
 - [ ] Apply the approval-binding migration and exercise a live service-role worker against Supabase and provider sandboxes
 
+### P7G — Ambiguous provider execution reconciliation — VALIDATION PENDING
+- [x] Classify post-send network and provider-response ambiguity without treating definitive failures as uncertain
+- [x] Quarantine ambiguous mail/calendar outcomes and disable blind automatic retry
+- [x] Detect provider success followed by terminal receipt-persistence failure
+- [x] Persist service-role-only reconciliation cases bound to payload, approval, worker, policy, and provider receipt provenance
+- [x] Store only a SHA-256 digest of idempotency keys in reconciliation records
+- [x] Resolve from existing local receipts or provider-confirmed outcomes; unknown state requires manual review
+- [x] Deterministic ambiguity, binding, receipt-recovery, unknown-outcome, and worker-quarantine tests
+- [ ] Pass repository validation on the exact branch head
+- [ ] Apply the reconciliation migration and exercise live Gmail/Microsoft ambiguous-outcome recovery
+
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
 - [ ] Run user-approved OpenAI quality, latency, and cost evaluation
