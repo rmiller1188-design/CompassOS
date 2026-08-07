@@ -103,7 +103,8 @@ export function evaluateReleasePromotion({
 
   const checks = [];
   const addCheck = (id, passed, detail) => checks.push(Object.freeze({ id, passed: Boolean(passed), detail }));
-  addCheck('candidate-hash-valid', verifyReleaseCandidate(candidate), 'candidate manifest integrity');
+  const candidateHashValid = verifyReleaseCandidate(candidate);
+  addCheck('candidate-hash-valid', candidateHashValid, 'candidate manifest integrity');
   addCheck('readiness-passed', readiness.ready === true && readiness.disposition === 'reviewable-live', `readiness disposition: ${readiness.disposition}`);
   addCheck('migration-hash-bound', readiness.migrations?.manifestHash === candidate.migrationManifestHash, 'candidate migration manifest matches readiness evidence');
   addCheck('ledger-ready', evidenceLedger.ready === true && evidenceLedger.disposition === 'reviewable-live', `ledger disposition: ${evidenceLedger.disposition}`);
@@ -118,7 +119,12 @@ export function evaluateReleasePromotion({
     'all selected evidence is bound to the candidate commit',
   );
 
-  const currentApprovals = normalizedApprovals.filter((approval) => approval.current);
+  // An approval can only be current when the candidate manifest itself is intact.
+  // Otherwise a caller could mutate candidate fields while retaining the old
+  // candidateHash and accidentally satisfy the approval threshold.
+  const currentApprovals = candidateHashValid
+    ? normalizedApprovals.filter((approval) => approval.current)
+    : [];
   const rejected = currentApprovals.some((approval) => approval.decision === 'rejected');
   const validApprovals = currentApprovals.filter((approval) => {
     const age = evaluatedAt.getTime() - new Date(approval.approvedAt).getTime();
