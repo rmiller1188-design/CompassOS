@@ -7,6 +7,10 @@ import {
 } from './calendar-execution.js';
 import { assertApprovedPayloadUnchanged } from './reply-draft.js';
 import {
+  buildReconciliationCase,
+  isAmbiguousProviderOutcome,
+} from './execution-reconciliation.js';
+import {
   evaluateRuntimeAction,
   verifyRuntimeActionDecision,
 } from '../operations/runtime-action-policy.js';
@@ -44,9 +48,6 @@ function policyInput(action) {
     accountId: action.providerAccountId,
     provider: action.provider,
     actionType: action.actionType,
-    // The atomic lease transition changes approved -> executing. Policy evaluates the
-    // persisted approval binding, while requireExecutionContext separately proves the
-    // current queue state is executing and bound to this lease.
     state: 'approved',
     payloadRevision: action.payloadRevision,
     payloadHash: action.payloadHash,
@@ -73,13 +74,14 @@ function assertActionConsentAndPayload(context) {
   assertApprovedCalendarPayloadUnchanged({ approvedPayloadHash: context.action.approvedPayloadHash, payload: context.payload });
 }
 
-async function failClaim({ transition, claim, error, policyDecision = null }) {
+async function failClaim({ transition, claim, error, policyDecision = null, reconciliationRequired = false }) {
   await transition(claim.action.id, 'failed', {
     expectedRevision: claim.action.revision,
     metadata: {
       workerId: claim.lease.workerId,
       errorCode: error.code || null,
-      retryable: error.retryable === true,
+      retryable: reconciliationRequired ? false : error.retryable === true,
+      reconciliationRequired,
       policyDecisionHash: policyDecision?.decisionHash || null,
       policyDecision: policyDecision?.decision || null,
       policyFailedChecks: policyDecision?.failedChecks || [],
@@ -87,11 +89,16 @@ async function failClaim({ transition, claim, error, policyDecision = null }) {
   });
 }
 
+function receiptId(receipt) {
+  return receipt?.providerMessageId || receipt?.providerEventId || receipt?.id || null;
+}
+
 export async function executePolicyEnforcedClaim({
   claim,
   loadExecutionContext,
   loadPolicy,
   recordPolicyDecision,
+  recordReconciliationCase,
   getReceiptByIdempotencyKey,
   transition,
   mailAdapters,
@@ -103,12 +110,14 @@ export async function executePolicyEnforcedClaim({
   requireFunction(loadExecutionContext, 'Execution-context loader');
   requireFunction(loadPolicy, 'Runtime-policy loader');
   requireFunction(recordPolicyDecision, 'Policy-decision recorder');
+  requireFunction(recordReconciliationCase, 'Reconciliation recorder');
   requireFunction(getReceiptByIdempotencyKey, 'Receipt lookup');
   requireFunction(transition, 'Action transition function');
   assertLeaseMatchesAction(claim.lease, claim.action, now());
 
   let context;
   let decision;
+  let providerReceipt = null;
   try {
     context = requireExecutionContext(await loadExecutionContext(claim.action), claim);
     assertLeaseMatchesAction(claim.lease, context.action, now());
@@ -126,16 +135,36 @@ export async function executePolicyEnforcedClaim({
     assertActionConsentAndPayload(context);
     const existing = await getReceiptByIdempotencyKey(context.action.idempotencyKey);
     if (existing) {
-      await transition(claim.action.id, 'succeeded', { expectedRevision: claim.action.revision, metadata: { workerId: claim.lease.workerId, providerReceiptId: existing.providerMessageId || existing.providerEventId || existing.id || null, policyDecisionHash: decision.decisionHash, idempotentReplay: true } });
+      await transition(claim.action.id, 'succeeded', { expectedRevision: claim.action.revision, metadata: { workerId: claim.lease.workerId, providerReceiptId: receiptId(existing), policyDecisionHash: decision.decisionHash, idempotentReplay: true } });
       return existing;
     }
 
     const adapter = resolveAdapter({ action: context.action, mailAdapters, calendarAdapters });
-    const receipt = await adapter.execute({ account: context.account, payload: context.payload, idempotencyKey: context.action.idempotencyKey });
-    await transition(claim.action.id, 'succeeded', { expectedRevision: claim.action.revision, metadata: { workerId: claim.lease.workerId, providerReceiptId: receipt?.providerMessageId || receipt?.providerEventId || receipt?.id || null, policyDecisionHash: decision.decisionHash } });
-    return receipt;
+    providerReceipt = await adapter.execute({ account: context.account, payload: context.payload, idempotencyKey: context.action.idempotencyKey });
+    try {
+      await transition(claim.action.id, 'succeeded', { expectedRevision: claim.action.revision, metadata: { workerId: claim.lease.workerId, providerReceiptId: receiptId(providerReceipt), policyDecisionHash: decision.decisionHash } });
+    } catch (cause) {
+      const error = new Error('Provider succeeded but Compass could not persist the terminal receipt', { cause });
+      error.code = 'PROVIDER_SUCCEEDED_RECEIPT_PERSISTENCE_FAILED';
+      error.ambiguousOutcome = true;
+      error.providerReceipt = providerReceipt;
+      throw error;
+    }
+    return providerReceipt;
   } catch (error) {
-    await failClaim({ transition, claim, error, policyDecision: decision });
+    const ambiguous = isAmbiguousProviderOutcome(error);
+    if (ambiguous && context?.action) {
+      const reconciliation = buildReconciliationCase({
+        action: context.action,
+        lease: claim.lease,
+        error,
+        receipt: error.providerReceipt || providerReceipt,
+        policyDecision: decision,
+        now: now(),
+      });
+      await recordReconciliationCase(reconciliation);
+    }
+    await failClaim({ transition, claim, error, policyDecision: decision, reconciliationRequired: ambiguous });
     throw error;
   }
 }

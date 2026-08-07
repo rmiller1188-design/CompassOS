@@ -51,17 +51,20 @@ function deps(overrides = {}) {
   const { claim, context } = fixture();
   const transitions = [];
   const decisions = [];
+  const reconciliations = [];
   let executions = 0;
   return {
     claim,
     transitions,
     decisions,
+    reconciliations,
     get executions() { return executions; },
     args: {
       claim,
       loadExecutionContext: async () => context,
       loadPolicy: async () => policy(),
       recordPolicyDecision: async ({ decision }) => decisions.push(decision),
+      recordReconciliationCase: async (reconciliation) => reconciliations.push(reconciliation),
       getReceiptByIdempotencyKey: async () => null,
       transition: async (id, status, options) => transitions.push({ id, status, options }),
       mailAdapters: {
@@ -134,4 +137,34 @@ test('rejects execution-context drift from the leased action', async () => {
   });
   await assert.rejects(() => executePolicyEnforcedClaim(run.args), /Execution context mismatch: payloadRevision/);
   assert.equal(run.executions, 0);
+});
+
+test('quarantines an ambiguous provider timeout and disables blind retry', async () => {
+  const error = new Error('socket timed out');
+  error.code = 'ETIMEDOUT';
+  error.requestSent = true;
+  const run = deps({
+    mailAdapters: { google: { provider: 'google', execute: async () => { throw error; } } },
+  });
+  await assert.rejects(() => executePolicyEnforcedClaim(run.args), /socket timed out/);
+  assert.equal(run.reconciliations.length, 1);
+  assert.equal(run.reconciliations[0].status, 'pending');
+  assert.equal(run.reconciliations[0].reasonCode, 'ETIMEDOUT');
+  assert.equal(run.transitions.at(-1).status, 'failed');
+  assert.equal(run.transitions.at(-1).options.metadata.reconciliationRequired, true);
+  assert.equal(run.transitions.at(-1).options.metadata.retryable, false);
+});
+
+test('quarantines provider success when terminal receipt persistence fails', async () => {
+  const run = deps({
+    transition: async (id, status, options) => {
+      run.transitions.push({ id, status, options });
+      if (status === 'succeeded') throw new Error('database unavailable');
+    },
+  });
+  await assert.rejects(() => executePolicyEnforcedClaim(run.args), /could not persist the terminal receipt/);
+  assert.equal(run.reconciliations.length, 1);
+  assert.equal(run.reconciliations[0].providerReceiptId, 'provider_msg_1');
+  assert.equal(run.transitions.at(-1).status, 'failed');
+  assert.equal(run.transitions.at(-1).options.metadata.reconciliationRequired, true);
 });
