@@ -199,6 +199,16 @@
 - [x] Pass repository validation on the implementation/documentation candidate (201/201 tests); final documentation-head CI must remain green
 - [ ] Apply the retry-worker migration and validate live multi-worker contention, lease expiry, provider throttling, and end-to-end reconciliation retry
 
+### P7M — Reconciliation OAuth refresh boundary — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Bind reconciliation session acquisition to the exact user, connected account, and provider before any provider lookup
+- [x] Reuse the existing server-side encrypted OAuth refresh/rotation authority
+- [x] Route transient OAuth refresh failures through P7L bounded backoff and provider Retry-After handling
+- [x] Route disconnected, reauthorization-required, and permanent refresh failures to reconnect/manual review
+- [x] Prevent provider reconciliation orchestration after an OAuth boundary failure
+- [x] Keep refreshed access tokens ephemeral to worker orchestration and out of retry/evidence results
+- [x] Deterministic binding-drift, refresh-retry, reconnect, token-nonleakage, and exhaustion tests
+- [ ] Validate live Google/Microsoft token refresh/rotation, revoked consent, and provider lookup after refresh
+
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
 - [ ] Run user-approved OpenAI quality, latency, and cost evaluation
