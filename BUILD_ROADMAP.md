@@ -173,6 +173,15 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Implementation candidate passed GitHub Actions `Validate production core` run 410 with 230/230 tests; final documentation/status head must remain green
 - [ ] Validate expiry/replay behavior with live Google/Microsoft adapters and deployed worker instrumentation
 
+### P7R — Purpose-bound reconciliation provider capabilities — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Wrap contained single-use provider credentials in an immutable exact-purpose/action binding
+- [x] Mint reconciliation sessions only for `reconciliation.lookup` and the claimed action id
+- [x] Keep purpose subject metadata non-enumerable and out of provider-session JSON serialization
+- [x] Fail closed on purpose, subject, provider, or account binding drift
+- [x] Include purpose-bound session module in `npm run validate` with deterministic coverage
+- [x] Implementation candidate passed GitHub Actions `Validate production core` run 424 with 234/234 tests
+- [ ] Validate live provider adapter consumption against the exact purpose/action binding
+
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, reconnect, refresh/rotation, and provider-side reconciliation markers
