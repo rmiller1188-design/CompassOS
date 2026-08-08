@@ -1,3 +1,5 @@
+import { createContainedProviderSession } from './provider-session-credential.js';
+
 function requireString(value, label) {
   if (typeof value !== 'string' || !value.trim()) throw new TypeError(`${label} is required`);
   return value.trim();
@@ -67,7 +69,7 @@ export function createOAuthReconciliationSessionPreparer({ oauthService }) {
     requireString(accessToken, 'Provider access token');
     return Object.freeze({
       ...context,
-      providerSession: Object.freeze({
+      providerSession: createContainedProviderSession({
         provider: binding.provider,
         accountId: binding.accountId,
         accessToken,
