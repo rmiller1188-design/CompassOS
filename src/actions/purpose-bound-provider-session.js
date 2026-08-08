@@ -11,12 +11,6 @@ function purposeMismatchError() {
   return error;
 }
 
-function assertUseBinding(binding, purpose, subjectId) {
-  if (!binding || typeof binding !== 'object') throw purposeMismatchError();
-  if (requireString(binding.purpose, 'Provider credential use purpose') !== purpose) throw purposeMismatchError();
-  if (requireString(binding.subjectId, 'Provider credential use subject id') !== subjectId) throw purposeMismatchError();
-}
-
 export function createPurposeBoundProviderSession({ session, purpose, subjectId }) {
   const contained = assertContainedProviderSession(session);
   const boundPurpose = requireString(purpose, 'Provider credential purpose');
@@ -32,11 +26,7 @@ export function createPurposeBoundProviderSession({ session, purpose, subjectId 
     purpose: { value: boundPurpose, enumerable: false, writable: false, configurable: false },
     subjectId: { value: boundSubjectId, enumerable: false, writable: false, configurable: false },
     withAccessToken: {
-      value: async (binding, callback) => {
-        if (typeof callback !== 'function') throw new TypeError('Provider token callback is required');
-        assertUseBinding(binding, boundPurpose, boundSubjectId);
-        return contained.withAccessToken(callback);
-      },
+      value: async (callback) => contained.withAccessToken(callback),
       enumerable: false,
       writable: false,
       configurable: false,
