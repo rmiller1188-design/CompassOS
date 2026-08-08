@@ -37,7 +37,7 @@ function retryStore({ attempt = 1 } = {}) {
   };
 }
 
-test('OAuth reconciliation session preparer acquires a valid account-bound access token', async () => {
+test('OAuth reconciliation session preparer acquires a valid account-bound access token through the capability boundary', async () => {
   const calls = [];
   const prepare = createOAuthReconciliationSessionPreparer({
     oauthService: {
@@ -51,7 +51,10 @@ test('OAuth reconciliation session preparer acquires a valid account-bound acces
   assert.deepEqual(calls, [{ userId: 'user-1', accountId: 'account-1' }]);
   assert.equal(prepared.providerSession.provider, 'google');
   assert.equal(prepared.providerSession.accountId, 'account-1');
-  assert.equal(prepared.providerSession.accessToken, 'access-secret');
+  assert.equal(prepared.providerSession.credentialMode, 'capability-only');
+  assert.equal('accessToken' in prepared.providerSession, false);
+  const providerResult = await prepared.providerSession.withAccessToken(async (token) => ({ authenticated: token === 'access-secret' }));
+  assert.deepEqual(providerResult, { authenticated: true });
 });
 
 test('session preparation fails closed on account or owner drift before OAuth access', async () => {
@@ -138,18 +141,23 @@ test('refreshed OAuth session is ephemeral to orchestration and not returned by 
   const prepare = createOAuthReconciliationSessionPreparer({
     oauthService: { async getValidAccessToken() { return 'rotated-access-secret'; } },
   });
-  let observedToken = null;
+  let credentialUsed = false;
   const result = await runReconciliationRetryWorkerOnce({
     workerId: 'worker-1',
     retryStore: store,
     hydrate: async () => context(),
     prepareProviderSession: prepare,
     orchestrate: async (prepared) => {
-      observedToken = prepared.providerSession.accessToken;
+      assert.equal('accessToken' in prepared.providerSession, false);
+      const providerResult = await prepared.providerSession.withAccessToken(async (token) => {
+        credentialUsed = token === 'rotated-access-secret';
+        return { ok: true };
+      });
+      assert.deepEqual(providerResult, { ok: true });
       return { disposition: 'resolved_succeeded', resolutionCode: 'PROVIDER_CONFIRMED_SUCCESS' };
     },
   });
-  assert.equal(observedToken, 'rotated-access-secret');
+  assert.equal(credentialUsed, true);
   assert.equal(result.disposition, 'resolved_succeeded');
   assert.equal(JSON.stringify(result).includes('rotated-access-secret'), false);
   assert.equal(store.calls[0][0], 'release');

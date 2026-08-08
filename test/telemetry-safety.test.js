@@ -30,17 +30,18 @@ test('redacts bearer tokens, JWTs, and OAuth query parameters in strings', () =>
   assert.equal(output.url, 'https://example.test/callback?code=[REDACTED]&access_token=[REDACTED]&state=ok');
 });
 
-test('contained provider sessions serialize only provider metadata and pseudonymous account reference', () => {
+test('capability-only provider sessions serialize only provider metadata and pseudonymous account reference', () => {
   const session = createContainedProviderSession({ provider: 'google', accountId: 'account-123', accessToken: 'top-secret' });
   const output = sanitizeTelemetry({ session });
   assert.equal(output.session.provider, 'google');
   assert.equal(output.session.accountRef, telemetryAccountRef('account-123'));
   assert.equal(output.session.credential, 'ephemeral');
+  assert.equal(output.session.credentialMode, 'capability-only');
   assert.equal(JSON.stringify(output).includes('top-secret'), false);
   assert.equal(JSON.stringify(output).includes('account-123'), false);
 });
 
-test('does not inspect non-enumerable provider access-token property', () => {
+test('legacy session-shaped objects are not trusted and non-enumerable token getters are never read', () => {
   let reads = 0;
   const object = { provider: 'google', accountId: 'acct', withAccessToken: async () => undefined };
   Object.defineProperty(object, 'accessToken', {
@@ -52,7 +53,10 @@ test('does not inspect non-enumerable provider access-token property', () => {
   });
   const output = sanitizeTelemetry(object);
   assert.equal(reads, 0);
-  assert.equal(output.credential, 'ephemeral');
+  assert.equal(output.provider, 'google');
+  assert.equal(output.accountId, 'acct');
+  assert.equal(output.withAccessToken, '[REDACTED]');
+  assert.equal('credential' in output, false);
 });
 
 test('handles errors without emitting secret headers or arbitrary enumerable fields', () => {
@@ -109,12 +113,17 @@ test('worker telemetry event excludes raw account id and access token', () => {
   assert.match(event.metadata.url, /access_token=\[REDACTED\]/);
 });
 
-test('worker telemetry event rejects uncontained session-shaped values', () => {
+test('worker telemetry event rejects legacy or uncontained session-shaped values', () => {
   assert.throws(() => createWorkerTelemetryEvent({
     event: 'lookup',
     subsystem: 'reconciliation',
     providerSession: { provider: 'google', accountId: 'a', accessToken: 'bad' },
-  }), /Contained provider session is required/);
+  }), /Capability-only contained provider session is required/);
+  assert.throws(() => createWorkerTelemetryEvent({
+    event: 'lookup',
+    subsystem: 'reconciliation',
+    providerSession: { provider: 'google', accountId: 'a', withAccessToken: async () => undefined },
+  }), /Capability-only contained provider session is required/);
 });
 
 test('account telemetry references are deterministic but do not expose account ids', () => {
