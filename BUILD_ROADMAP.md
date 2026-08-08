@@ -154,14 +154,14 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Exact final head passed GitHub Actions `Validate production core` run 384 with 225/225 tests
 - [ ] Validate deployed worker logging/tracing/APM behavior against the application telemetry boundary
 
-### P7P — Capability-only provider credential boundary — VALIDATION PENDING
+### P7P — Capability-only provider credential boundary — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Remove ambient `providerSession.accessToken` access entirely
 - [x] Require explicit capability-only credential mode on session assertions and telemetry trust paths
 - [x] Fail closed when capability callbacks return nested raw token material
 - [x] Replace secret-bearing thrown callback errors with a non-secret boundary error
 - [x] Preserve ordinary non-secret provider errors for retry classification
 - [x] Add deterministic ambient-access, return-escape, nested collection, thrown-secret, and legacy-session tests
-- [ ] Pass repository validation on the exact final implementation/documentation head
+- [x] Implementation candidate passed GitHub Actions `Validate production core` run 397 with 227/227 tests; final documentation/status head must remain green
 - [ ] Validate the capability boundary against live provider adapters and deployed worker instrumentation
 
 ## Cross-cutting live validation blockers
