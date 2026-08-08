@@ -1,6 +1,6 @@
 # P7L Review — Reconciliation Retry Worker
 
-Status: VALIDATION PENDING
+Status: REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 Date: 2026-08-08
 
 ## Objective
@@ -29,12 +29,11 @@ Turn P7K transient provider reconciliation outcomes into a bounded, service-role
 6. Invalid hydrated context or orchestration failure becomes manual review.
 7. This milestone does not add provider scopes, browser write authority, or unsupported iMessage access.
 
-## Validation target
+## Validation
 
-- `npm run validate`
-- production-core syntax validation including `src/actions/reconciliation-retry-worker.js`
-- deterministic Node test suite including worker idle, retry, exhaustion, context-drift, orchestration-failure, terminal-release, and backoff-bound cases
-- GitHub Actions validation on the exact final branch head
+GitHub Actions `Validate production core` run 342 passed on branch head `3b464d1de05137cf8547151a170c19e2dd82b28d` through PR merge validation against the P7K base. `npm run validate` passed under Node 22.23.1. The deterministic repository suite completed 201/201 tests with zero failures, including the new worker idle, retry, exhaustion, context-drift, orchestration-failure, terminal-release, and backoff-bound cases.
+
+A final documentation-only commit follows this validation result; the milestone is only final-reviewable if GitHub Actions remains green on that exact final head.
 
 ## Infrastructure blockers
 
