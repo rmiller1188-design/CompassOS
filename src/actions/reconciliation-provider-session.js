@@ -1,4 +1,5 @@
 import { createContainedProviderSession } from './provider-session-credential.js';
+import { createPurposeBoundProviderSession } from './purpose-bound-provider-session.js';
 
 function requireString(value, label) {
   if (typeof value !== 'string' || !value.trim()) throw new TypeError(`${label} is required`);
@@ -67,12 +68,17 @@ export function createOAuthReconciliationSessionPreparer({ oauthService }) {
       throw classifySessionError(error);
     }
     requireString(accessToken, 'Provider access token');
+    const containedSession = createContainedProviderSession({
+      provider: binding.provider,
+      accountId: binding.accountId,
+      accessToken,
+    });
     return Object.freeze({
       ...context,
-      providerSession: createContainedProviderSession({
-        provider: binding.provider,
-        accountId: binding.accountId,
-        accessToken,
+      providerSession: createPurposeBoundProviderSession({
+        session: containedSession,
+        purpose: 'reconciliation.lookup',
+        subjectId: binding.actionId,
       }),
     });
   };
