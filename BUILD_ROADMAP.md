@@ -209,6 +209,17 @@
 - [x] Deterministic binding-drift, refresh-retry, reconnect, token-nonleakage, and exhaustion tests
 - [ ] Validate live Google/Microsoft token refresh/rotation, revoked consent, and provider lookup after refresh
 
+### P7N — Provider session credential containment — VALIDATION PENDING
+- [x] Move reconciliation access tokens into a dedicated contained provider-session object
+- [x] Make raw access tokens non-enumerable so object spread and routine structured serialization do not copy credentials
+- [x] Provide an explicit `withAccessToken` capability for provider adapters that need transient credential access
+- [x] Serialize provider sessions only as safe provider/account metadata with an `ephemeral` credential marker
+- [x] Preserve existing direct token access compatibility while tightening the serialization boundary
+- [x] Fail closed on provider/account binding drift and malformed capability objects
+- [x] Add deterministic containment, serialization, immutability, binding, and callback tests
+- [ ] Pass repository validation on the exact branch head
+- [ ] Validate deployed worker logging/tracing to confirm provider credentials remain absent from structured telemetry
+
 - [ ] Apply and verify Supabase migrations with service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, and reconnect behavior
 - [ ] Run user-approved OpenAI quality, latency, and cost evaluation
