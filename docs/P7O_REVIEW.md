@@ -2,7 +2,7 @@
 
 ## Status
 
-VALIDATION PENDING. This artifact becomes reviewable only after `Validate production core` passes on the exact final documentation head.
+REVIEWABLE CORE / LIVE VALIDATION BLOCKED. The reviewable branch must retain a passing `Validate production core` check on the exact final documentation head. The implementation/documentation candidate passed GitHub Actions run 380 with 225/225 deterministic tests and production-core syntax validation under Node 22.23.1; final-head validation is the release gate for this artifact.
 
 ## Objective
 
@@ -19,7 +19,7 @@ Close the application-side observability gap left after P7N. Provider access tok
 - Circular structures, excessive nesting, and oversized strings are bounded deterministically.
 - Error serialization uses a small allowlist (`name`, `message`, `code`, `status`, `retryAfter`) instead of copying arbitrary enumerable error properties.
 - `createWorkerTelemetryEvent` creates an explicit, frozen telemetry envelope for worker events with safe provider/account metadata.
-- `npm run validate` now syntax-checks the telemetry boundary before running the complete deterministic test suite.
+- `npm run validate` syntax-checks the telemetry boundary before running the complete deterministic test suite.
 
 ## Deterministic coverage
 
@@ -40,15 +40,16 @@ Close the application-side observability gap left after P7N. Provider access tok
 
 This milestone does not add provider scopes, execution authority, or client-side credentials. The sanitizer never needs the raw access token and never invokes `withAccessToken`. Raw connected-account IDs are excluded from the worker telemetry envelope in favor of a one-way operational reference. Existing P7M refresh/rotation and P7N credential containment remain unchanged.
 
-The implementation also does not claim that JavaScript application controls can prevent a privileged native debugger, heap inspector, process-memory dump, or third-party APM agent with invasive runtime instrumentation from observing process memory. That requires deployed-environment validation and vendor-specific controls.
+The implementation does not claim that JavaScript application controls can prevent a privileged native debugger, heap inspector, process-memory dump, or third-party APM agent with invasive runtime instrumentation from observing process memory. That requires deployed-environment validation and vendor-specific controls.
 
-## Validation gate
+## Validation evidence
 
-Required before marking reviewable:
-
-1. GitHub Actions `Validate production core` succeeds on the exact final source/documentation head.
-2. The complete `node --test` suite passes with zero failures.
-3. Production-core syntax validation succeeds under the configured Node 22 workflow.
+- GitHub Actions workflow: `Validate production core`
+- Candidate run 380: success
+- Candidate deterministic suite: 225 passed, 0 failed
+- Candidate production-core syntax validation: passed
+- Application runtime used by validation: Node 22.23.1
+- Exact final documentation-head GitHub check: required to remain green before this milestone is treated as reviewable
 
 ## Infrastructure blockers
 
