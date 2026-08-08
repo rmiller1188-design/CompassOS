@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { classifyReconciliationProviderSessionError } from './reconciliation-provider-session.js';
 
 const DEFAULT_BASE_DELAY_MS = 5_000;
 const DEFAULT_MAX_DELAY_MS = 15 * 60_000;
@@ -113,10 +114,38 @@ function normalizeClaim(row) {
   };
 }
 
+async function scheduleClassifiedRetry({ claim, classification, retryStore, maxAttempts, now, retryPolicy }) {
+  if (claim.attempt >= maxAttempts) {
+    await retryStore.exhaust({ actionId: claim.actionId, leaseToken: claim.leaseToken });
+    return Object.freeze({ disposition: 'manual_review', resolutionCode: 'PROVIDER_LOOKUP_RETRY_EXHAUSTED', actionId: claim.actionId, attempt: claim.attempt });
+  }
+  const plan = computeReconciliationRetryPlan({
+    actionId: claim.actionId,
+    attempt: claim.attempt,
+    retryAfterMs: classification.retryAfterMs ?? null,
+    now: now(),
+    ...retryPolicy,
+  });
+  await retryStore.scheduleRetry({
+    actionId: claim.actionId,
+    leaseToken: claim.leaseToken,
+    nextAttemptAt: plan.scheduledAt,
+    errorCode: classification.resolutionCode || 'PROVIDER_LOOKUP_TRANSIENT',
+  });
+  return Object.freeze({
+    disposition: 'retry_scheduled',
+    resolutionCode: classification.resolutionCode || 'PROVIDER_LOOKUP_TRANSIENT',
+    actionId: claim.actionId,
+    attempt: claim.attempt,
+    retry: plan,
+  });
+}
+
 export async function runReconciliationRetryWorkerOnce({
   workerId,
   retryStore,
   hydrate,
+  prepareProviderSession = null,
   orchestrate,
   maxAttempts = DEFAULT_MAX_ATTEMPTS,
   leaseSeconds = 60,
@@ -129,6 +158,7 @@ export async function runReconciliationRetryWorkerOnce({
     throw new TypeError('Reconciliation retry store is incomplete');
   }
   if (typeof hydrate !== 'function') throw new TypeError('Reconciliation hydrator is required');
+  if (prepareProviderSession !== null && typeof prepareProviderSession !== 'function') throw new TypeError('Provider session preparer must be a function');
   if (typeof orchestrate !== 'function') throw new TypeError('Reconciliation orchestrator is required');
 
   const claim = normalizeClaim(await retryStore.claim({ workerId, leaseSeconds }));
@@ -149,6 +179,19 @@ export async function runReconciliationRetryWorkerOnce({
     return Object.freeze({ disposition: 'manual_review', resolutionCode: 'RECONCILIATION_CONTEXT_INVALID', actionId: claim.actionId, attempt: claim.attempt, error: error?.message || 'Context hydration failed' });
   }
 
+  if (prepareProviderSession) {
+    try {
+      context = await prepareProviderSession(context);
+    } catch (error) {
+      const classification = classifyReconciliationProviderSessionError(error);
+      if (classification.disposition === 'retry_later') {
+        return scheduleClassifiedRetry({ claim, classification, retryStore, maxAttempts, now, retryPolicy });
+      }
+      await retryStore.exhaust({ actionId: claim.actionId, leaseToken: claim.leaseToken, resolutionCode: classification.resolutionCode });
+      return Object.freeze({ disposition: 'manual_review', resolutionCode: classification.resolutionCode, actionId: claim.actionId, attempt: claim.attempt });
+    }
+  }
+
   let result;
   try {
     result = await orchestrate(context);
@@ -158,24 +201,7 @@ export async function runReconciliationRetryWorkerOnce({
   }
 
   if (result?.disposition === 'retry_later') {
-    if (claim.attempt >= maxAttempts) {
-      await retryStore.exhaust({ actionId: claim.actionId, leaseToken: claim.leaseToken });
-      return Object.freeze({ disposition: 'manual_review', resolutionCode: 'PROVIDER_LOOKUP_RETRY_EXHAUSTED', actionId: claim.actionId, attempt: claim.attempt });
-    }
-    const plan = computeReconciliationRetryPlan({
-      actionId: claim.actionId,
-      attempt: claim.attempt,
-      retryAfterMs: result.retryAfterMs ?? null,
-      now: now(),
-      ...retryPolicy,
-    });
-    await retryStore.scheduleRetry({
-      actionId: claim.actionId,
-      leaseToken: claim.leaseToken,
-      nextAttemptAt: plan.scheduledAt,
-      errorCode: result.resolutionCode || 'PROVIDER_LOOKUP_TRANSIENT',
-    });
-    return Object.freeze({ disposition: 'retry_scheduled', resolutionCode: result.resolutionCode || 'PROVIDER_LOOKUP_TRANSIENT', actionId: claim.actionId, attempt: claim.attempt, retry: plan });
+    return scheduleClassifiedRetry({ claim, classification: result, retryStore, maxAttempts, now, retryPolicy });
   }
 
   await retryStore.release({ actionId: claim.actionId, leaseToken: claim.leaseToken });
