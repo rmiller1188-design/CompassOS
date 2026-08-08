@@ -3,6 +3,12 @@ function requireString(value, label) {
   return value.trim();
 }
 
+function requirePositiveNumber(value, label) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) throw new TypeError(`${label} must be a positive number`);
+  return number;
+}
+
 function containsCredential(value, token, { depth = 0, seen = new WeakSet() } = {}) {
   if (value === null || value === undefined) return false;
   if (typeof value === 'string') return value.includes(token);
@@ -38,16 +44,40 @@ function containsCredential(value, token, { depth = 0, seen = new WeakSet() } = 
   return false;
 }
 
-function credentialEscapeError() {
-  const error = new Error('Provider credential capability attempted to return secret material');
-  error.code = 'PROVIDER_CREDENTIAL_ESCAPE_BLOCKED';
+function capabilityError(message, code) {
+  const error = new Error(message);
+  error.code = code;
   return error;
 }
 
-export function createContainedProviderSession({ provider, accountId, accessToken }) {
+function credentialEscapeError() {
+  return capabilityError('Provider credential capability attempted to return secret material', 'PROVIDER_CREDENTIAL_ESCAPE_BLOCKED');
+}
+
+function credentialConsumedError() {
+  return capabilityError('Provider credential capability has already been consumed', 'PROVIDER_CREDENTIAL_CAPABILITY_CONSUMED');
+}
+
+function credentialExpiredError() {
+  return capabilityError('Provider credential capability has expired', 'PROVIDER_CREDENTIAL_CAPABILITY_EXPIRED');
+}
+
+export function createContainedProviderSession({
+  provider,
+  accountId,
+  accessToken,
+  capabilityTtlMs = 120_000,
+  now = () => Date.now(),
+}) {
   const boundProvider = requireString(provider, 'Provider');
   const boundAccountId = requireString(accountId, 'Account id');
   const token = requireString(accessToken, 'Provider access token');
+  const ttlMs = requirePositiveNumber(capabilityTtlMs, 'Provider credential capability TTL');
+  if (typeof now !== 'function') throw new TypeError('Provider credential capability clock is required');
+  const issuedAtMs = Number(now());
+  if (!Number.isFinite(issuedAtMs)) throw new TypeError('Provider credential capability clock must return a finite timestamp');
+  const expiresAtMs = issuedAtMs + ttlMs;
+  let consumed = false;
 
   const session = {};
   Object.defineProperties(session, {
@@ -69,9 +99,26 @@ export function createContainedProviderSession({ provider, accountId, accessToke
       writable: false,
       configurable: false,
     },
+    capabilityUseMode: {
+      value: 'single-use',
+      enumerable: true,
+      writable: false,
+      configurable: false,
+    },
     withAccessToken: {
       value: async (callback) => {
         if (typeof callback !== 'function') throw new TypeError('Provider token callback is required');
+        if (consumed) throw credentialConsumedError();
+        const currentTimeMs = Number(now());
+        if (!Number.isFinite(currentTimeMs)) throw new TypeError('Provider credential capability clock must return a finite timestamp');
+        if (currentTimeMs >= expiresAtMs) {
+          consumed = true;
+          throw credentialExpiredError();
+        }
+
+        // Consume before invoking provider code so concurrent calls, callback failures,
+        // and credential-escape attempts cannot reuse the same bearer capability.
+        consumed = true;
         let result;
         try {
           result = await callback(token);
@@ -87,7 +134,13 @@ export function createContainedProviderSession({ provider, accountId, accessToke
       configurable: false,
     },
     toJSON: {
-      value: () => ({ provider: boundProvider, accountId: boundAccountId, credential: 'ephemeral', credentialMode: 'capability-only' }),
+      value: () => ({
+        provider: boundProvider,
+        accountId: boundAccountId,
+        credential: 'ephemeral',
+        credentialMode: 'capability-only',
+        capabilityUseMode: 'single-use',
+      }),
       enumerable: false,
       writable: false,
       configurable: false,
@@ -104,6 +157,7 @@ export function assertContainedProviderSession(session, { provider, accountId } 
   if (provider !== undefined && actualProvider !== requireString(provider, 'Expected provider')) throw new Error('Provider session provider mismatch');
   if (accountId !== undefined && actualAccountId !== requireString(accountId, 'Expected account id')) throw new Error('Provider session account mismatch');
   if (session.credentialMode !== 'capability-only') throw new Error('Capability-only provider credential mode is required');
+  if (session.capabilityUseMode !== 'single-use') throw new Error('Single-use provider credential capability is required');
   if ('accessToken' in session) throw new Error('Ambient provider token access is forbidden');
   if (typeof session.withAccessToken !== 'function') throw new Error('Contained provider credential capability is required');
   return session;

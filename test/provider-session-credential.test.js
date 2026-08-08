@@ -21,65 +21,120 @@ function buildContext() {
   };
 }
 
+function session(overrides = {}) {
+  return createContainedProviderSession({
+    provider: 'google',
+    accountId: 'account-1',
+    accessToken: 'secret-token',
+    ...overrides,
+  });
+}
+
 test('contained provider session exposes no ambient token property', () => {
-  const session = createContainedProviderSession({ provider: 'google', accountId: 'account-1', accessToken: 'secret-token' });
-  assert.deepEqual(Object.keys(session), ['provider', 'accountId', 'credentialMode']);
-  assert.equal('accessToken' in session, false);
-  assert.equal(session.accessToken, undefined);
-  assert.equal({ ...session }.accessToken, undefined);
-  assert.equal(JSON.stringify(session).includes('secret-token'), false);
+  const value = session();
+  assert.deepEqual(Object.keys(value), ['provider', 'accountId', 'credentialMode', 'capabilityUseMode']);
+  assert.equal('accessToken' in value, false);
+  assert.equal(value.accessToken, undefined);
+  assert.equal({ ...value }.accessToken, undefined);
+  assert.equal(JSON.stringify(value).includes('secret-token'), false);
 });
 
 test('contained provider session serializes only safe capability metadata', () => {
-  const session = createContainedProviderSession({ provider: 'microsoft', accountId: 'account-2', accessToken: 'bearer-secret' });
-  assert.deepEqual(JSON.parse(JSON.stringify(session)), {
+  const value = createContainedProviderSession({ provider: 'microsoft', accountId: 'account-2', accessToken: 'bearer-secret' });
+  assert.deepEqual(JSON.parse(JSON.stringify(value)), {
     provider: 'microsoft',
     accountId: 'account-2',
     credential: 'ephemeral',
     credentialMode: 'capability-only',
+    capabilityUseMode: 'single-use',
   });
 });
 
-test('withAccessToken permits provider work while preventing direct credential return', async () => {
-  const session = createContainedProviderSession({ provider: 'google', accountId: 'account-1', accessToken: 'secret-token' });
-  const result = await session.withAccessToken(async (token) => ({ status: 200, authenticated: token === 'secret-token' }));
+test('withAccessToken permits exactly one provider operation', async () => {
+  const value = session();
+  const result = await value.withAccessToken(async (token) => ({ status: 200, authenticated: token === 'secret-token' }));
   assert.deepEqual(result, { status: 200, authenticated: true });
   await assert.rejects(
-    () => session.withAccessToken(async (token) => token),
-    (error) => error?.code === 'PROVIDER_CREDENTIAL_ESCAPE_BLOCKED',
+    () => value.withAccessToken(async () => ({ status: 200 })),
+    (error) => error?.code === 'PROVIDER_CREDENTIAL_CAPABILITY_CONSUMED',
   );
-  assert.equal(Object.prototype.propertyIsEnumerable.call(session, 'withAccessToken'), false);
+  assert.equal(Object.prototype.propertyIsEnumerable.call(value, 'withAccessToken'), false);
+});
+
+test('concurrent credential capability attempts cannot reuse the token', async () => {
+  const value = session();
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const first = value.withAccessToken(async () => {
+    await gate;
+    return { ok: true };
+  });
+  await assert.rejects(
+    () => value.withAccessToken(async () => ({ ok: true })),
+    (error) => error?.code === 'PROVIDER_CREDENTIAL_CAPABILITY_CONSUMED',
+  );
+  release();
+  assert.deepEqual(await first, { ok: true });
+});
+
+test('credential capability expires before provider code can execute', async () => {
+  let current = 1_000;
+  const value = session({ capabilityTtlMs: 500, now: () => current });
+  current = 1_500;
+  let called = false;
+  await assert.rejects(
+    () => value.withAccessToken(async () => { called = true; return { ok: true }; }),
+    (error) => error?.code === 'PROVIDER_CREDENTIAL_CAPABILITY_EXPIRED',
+  );
+  assert.equal(called, false);
+  await assert.rejects(
+    () => value.withAccessToken(async () => ({ ok: true })),
+    (error) => error?.code === 'PROVIDER_CREDENTIAL_CAPABILITY_CONSUMED',
+  );
+});
+
+test('callback failure still consumes the credential capability', async () => {
+  const value = session();
+  const expected = new Error('provider timed out');
+  await assert.rejects(() => value.withAccessToken(async () => { throw expected; }), (error) => error === expected);
+  await assert.rejects(
+    () => value.withAccessToken(async () => ({ ok: true })),
+    (error) => error?.code === 'PROVIDER_CREDENTIAL_CAPABILITY_CONSUMED',
+  );
 });
 
 test('credential escape detection rejects nested, map, set, and thrown secret material', async () => {
-  const session = createContainedProviderSession({ provider: 'google', accountId: 'account-1', accessToken: 'secret-token' });
-  await assert.rejects(() => session.withAccessToken(async (token) => ({ nested: [`Bearer ${token}`] })), /attempted to return secret material/);
-  await assert.rejects(() => session.withAccessToken(async (token) => new Map([['authorization', token]])), /attempted to return secret material/);
-  await assert.rejects(() => session.withAccessToken(async (token) => new Set([`prefix-${token}-suffix`])), /attempted to return secret material/);
+  await assert.rejects(() => session().withAccessToken(async (token) => ({ nested: [`Bearer ${token}`] })), /attempted to return secret material/);
+  await assert.rejects(() => session().withAccessToken(async (token) => new Map([['authorization', token]])), /attempted to return secret material/);
+  await assert.rejects(() => session().withAccessToken(async (token) => new Set([`prefix-${token}-suffix`])), /attempted to return secret material/);
   await assert.rejects(
-    () => session.withAccessToken(async (token) => { throw new Error(`provider failed with ${token}`); }),
+    () => session().withAccessToken(async (token) => { throw new Error(`provider failed with ${token}`); }),
     (error) => error?.code === 'PROVIDER_CREDENTIAL_ESCAPE_BLOCKED' && !error.message.includes('secret-token'),
   );
 });
 
 test('ordinary provider callback failures preserve non-secret errors', async () => {
-  const session = createContainedProviderSession({ provider: 'google', accountId: 'account-1', accessToken: 'secret-token' });
+  const value = session();
   const expected = new Error('provider timed out');
-  await assert.rejects(() => session.withAccessToken(async () => { throw expected; }), (error) => error === expected);
+  await assert.rejects(() => value.withAccessToken(async () => { throw expected; }), (error) => error === expected);
 });
 
 test('contained provider sessions are immutable and binding assertions fail closed', () => {
-  const session = createContainedProviderSession({ provider: 'google', accountId: 'account-1', accessToken: 'secret-token' });
-  assert.equal(Object.isFrozen(session), true);
-  assert.equal(assertContainedProviderSession(session, { provider: 'google', accountId: 'account-1' }), session);
-  assert.throws(() => assertContainedProviderSession(session, { provider: 'microsoft', accountId: 'account-1' }), /provider mismatch/);
-  assert.throws(() => assertContainedProviderSession(session, { provider: 'google', accountId: 'other-account' }), /account mismatch/);
+  const value = session();
+  assert.equal(Object.isFrozen(value), true);
+  assert.equal(assertContainedProviderSession(value, { provider: 'google', accountId: 'account-1' }), value);
+  assert.throws(() => assertContainedProviderSession(value, { provider: 'microsoft', accountId: 'account-1' }), /provider mismatch/);
+  assert.throws(() => assertContainedProviderSession(value, { provider: 'google', accountId: 'other-account' }), /account mismatch/);
   assert.throws(
-    () => assertContainedProviderSession({ provider: 'google', accountId: 'account-1', credentialMode: 'legacy', withAccessToken() {} }),
+    () => assertContainedProviderSession({ provider: 'google', accountId: 'account-1', credentialMode: 'legacy', capabilityUseMode: 'single-use', withAccessToken() {} }),
     /Capability-only provider credential mode is required/,
   );
   assert.throws(
-    () => assertContainedProviderSession({ provider: 'google', accountId: 'account-1', credentialMode: 'capability-only', accessToken: 'ambient', withAccessToken() {} }),
+    () => assertContainedProviderSession({ provider: 'google', accountId: 'account-1', credentialMode: 'capability-only', capabilityUseMode: 'reusable', withAccessToken() {} }),
+    /Single-use provider credential capability is required/,
+  );
+  assert.throws(
+    () => assertContainedProviderSession({ provider: 'google', accountId: 'account-1', credentialMode: 'capability-only', capabilityUseMode: 'single-use', accessToken: 'ambient', withAccessToken() {} }),
     /Ambient provider token access is forbidden/,
   );
 });
@@ -96,17 +151,21 @@ test('reconciliation session preparation does not leak or expose access tokens t
     accountId: 'account-1',
     credential: 'ephemeral',
     credentialMode: 'capability-only',
+    capabilityUseMode: 'single-use',
   });
   assert.equal('accessToken' in prepared.providerSession, false);
   assert.equal(assertContainedProviderSession(prepared.providerSession, { provider: 'google', accountId: 'account-1' }), prepared.providerSession);
 });
 
-test('invalid credentials and missing capability callbacks are rejected', async () => {
+test('invalid credentials, TTLs, clocks, and missing capability callbacks are rejected', async () => {
   assert.throws(() => createContainedProviderSession({ provider: 'google', accountId: 'account-1', accessToken: '' }), /Provider access token is required/);
-  const session = createContainedProviderSession({ provider: 'google', accountId: 'account-1', accessToken: 'secret-token' });
-  await assert.rejects(() => session.withAccessToken(null), /Provider token callback is required/);
+  assert.throws(() => session({ capabilityTtlMs: 0 }), /TTL must be a positive number/);
+  assert.throws(() => session({ now: null }), /clock is required/);
+  assert.throws(() => session({ now: () => Number.NaN }), /finite timestamp/);
+  const value = session();
+  await assert.rejects(() => value.withAccessToken(null), /Provider token callback is required/);
   assert.throws(
-    () => assertContainedProviderSession({ provider: 'google', accountId: 'account-1', credentialMode: 'capability-only' }),
+    () => assertContainedProviderSession({ provider: 'google', accountId: 'account-1', credentialMode: 'capability-only', capabilityUseMode: 'single-use' }),
     /credential capability is required/,
   );
 });

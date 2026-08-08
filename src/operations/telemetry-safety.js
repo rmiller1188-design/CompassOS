@@ -52,6 +52,7 @@ function sanitizeValue(value, context) {
       accountRef: telemetryAccountRef(value.accountId),
       credential: 'ephemeral',
       credentialMode: 'capability-only',
+      capabilityUseMode: 'single-use',
     });
   }
 
@@ -78,6 +79,7 @@ function isContainedProviderSession(value) {
     && typeof value.provider === 'string'
     && typeof value.accountId === 'string'
     && value.credentialMode === 'capability-only'
+    && value.capabilityUseMode === 'single-use'
     && !('accessToken' in value)
     && typeof value.withAccessToken === 'function';
 }
@@ -113,7 +115,7 @@ export function createWorkerTelemetryEvent({
   };
 
   if (providerSession !== null) {
-    if (!isContainedProviderSession(providerSession)) throw new TypeError('Capability-only contained provider session is required');
+    if (!isContainedProviderSession(providerSession)) throw new TypeError('Capability-only single-use contained provider session is required');
     output.provider = requireString(providerSession.provider, 'Provider');
     output.accountRef = telemetryAccountRef(providerSession.accountId);
   }
