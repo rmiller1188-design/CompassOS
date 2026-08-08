@@ -37,6 +37,7 @@ test('capability-only provider sessions serialize only provider metadata and pse
   assert.equal(output.session.accountRef, telemetryAccountRef('account-123'));
   assert.equal(output.session.credential, 'ephemeral');
   assert.equal(output.session.credentialMode, 'capability-only');
+  assert.equal(output.session.capabilityUseMode, 'single-use');
   assert.equal(JSON.stringify(output).includes('top-secret'), false);
   assert.equal(JSON.stringify(output).includes('account-123'), false);
 });
@@ -113,17 +114,22 @@ test('worker telemetry event excludes raw account id and access token', () => {
   assert.match(event.metadata.url, /access_token=\[REDACTED\]/);
 });
 
-test('worker telemetry event rejects legacy or uncontained session-shaped values', () => {
+test('worker telemetry event rejects legacy, reusable, or uncontained session-shaped values', () => {
   assert.throws(() => createWorkerTelemetryEvent({
     event: 'lookup',
     subsystem: 'reconciliation',
     providerSession: { provider: 'google', accountId: 'a', accessToken: 'bad' },
-  }), /Capability-only contained provider session is required/);
+  }), /Capability-only single-use contained provider session is required/);
   assert.throws(() => createWorkerTelemetryEvent({
     event: 'lookup',
     subsystem: 'reconciliation',
-    providerSession: { provider: 'google', accountId: 'a', withAccessToken: async () => undefined },
-  }), /Capability-only contained provider session is required/);
+    providerSession: { provider: 'google', accountId: 'a', credentialMode: 'capability-only', withAccessToken: async () => undefined },
+  }), /Capability-only single-use contained provider session is required/);
+  assert.throws(() => createWorkerTelemetryEvent({
+    event: 'lookup',
+    subsystem: 'reconciliation',
+    providerSession: { provider: 'google', accountId: 'a', credentialMode: 'capability-only', capabilityUseMode: 'reusable', withAccessToken: async () => undefined },
+  }), /Capability-only single-use contained provider session is required/);
 });
 
 test('account telemetry references are deterministic but do not expose account ids', () => {
