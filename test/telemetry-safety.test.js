@@ -55,7 +55,7 @@ test('legacy session-shaped objects are not trusted and non-enumerable token get
   assert.equal(reads, 0);
   assert.equal(output.provider, 'google');
   assert.equal(output.accountId, 'acct');
-  assert.equal(output.withAccessToken, '[OMITTED]');
+  assert.equal(output.withAccessToken, '[REDACTED]');
   assert.equal('credential' in output, false);
 });
 
