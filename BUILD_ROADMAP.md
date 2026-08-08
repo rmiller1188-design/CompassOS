@@ -182,6 +182,15 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Implementation candidate passed GitHub Actions `Validate production core` run 424 with 234/234 tests
 - [ ] Validate live provider adapter consumption against the exact purpose/action binding
 
+### P7S — Purpose-bound reconciliation provider adapters — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Add production-safe Gmail, Microsoft mail, Google Calendar, and Microsoft Calendar reconciliation composition around the exact purpose-bound provider capability
+- [x] Assert `reconciliation.lookup`, claimed action id, provider, and connected-account binding before provider HTTP execution
+- [x] Keep raw access tokens inside the single-use capability callback and out of reconciliation outcomes/evidence
+- [x] Reject purpose/subject/account drift and capability replay before an additional provider request can execute
+- [x] Include purpose-bound provider adapter module in `npm run validate` with deterministic mail/calendar coverage
+- [x] Implementation candidate passed GitHub Actions `Validate production core` run 435 with 240/240 tests
+- [ ] Validate live Google/Microsoft OAuth → purpose-bound provider lookup consumption and fault injection
+
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, reconnect, refresh/rotation, and provider-side reconciliation markers
