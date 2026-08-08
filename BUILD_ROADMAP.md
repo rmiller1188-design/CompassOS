@@ -142,7 +142,7 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Repository validation passed on exact reviewable branch head
 - [ ] Validate deployed worker/APM behavior
 
-### P7O — Telemetry-safe worker diagnostics boundary — VALIDATION PENDING
+### P7O — Telemetry-safe worker diagnostics boundary — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Add provider-session-aware telemetry sanitizer that never invokes token getters/capabilities
 - [x] Redact secret-bearing keys, bearer strings, JWT-like values, and OAuth query parameters
 - [x] Replace raw connected-account IDs with deterministic SHA-256 pseudonymous telemetry references
@@ -151,7 +151,7 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Add explicit worker telemetry event envelope with allowlisted provider/account metadata
 - [x] Add deterministic leakage, malformed-session, circular, redaction, and bounded-output tests
 - [x] Include telemetry safety module in `npm run validate`
-- [ ] Pass repository validation on the exact final documentation head
+- [x] Implementation/documentation candidate passed repository validation (GitHub Actions run 380; 225/225 tests); exact final documentation-head CI must remain green
 - [ ] Validate deployed worker logging/tracing/APM behavior against the application telemetry boundary
 
 ## Cross-cutting live validation blockers
