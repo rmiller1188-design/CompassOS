@@ -1,6 +1,6 @@
 # P7P Review — Capability-only provider credential boundary
 
-Status: VALIDATION PENDING
+Status: REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 
 ## Scope
 
@@ -18,11 +18,11 @@ The capability also performs bounded deterministic escape inspection after callb
 - Secret-bearing callback errors are replaced rather than chained as causes, avoiding direct secret retention in the boundary error.
 - No OAuth scope, provider-write permission, browser execution authority, or database privilege is added.
 
-## Validation target
+## Validation
 
-Repository gate: `npm run validate`, including production-core syntax checks and the complete deterministic Node test suite. P7P adds coverage for ambient-token absence, safe serialization, direct and nested credential escape, map/set escape, thrown-secret replacement, preservation of ordinary provider errors, legacy-session rejection, and reconciliation context containment.
+GitHub Actions `Validate production core` run 397 passed on implementation head `0a23cc6751ab00522dfe52bb3df459babd802409` through PR merge validation against P7O. The repository gate ran production-core syntax checks under Node 22.23.1 and completed 227/227 deterministic tests with zero failures.
 
-The milestone is not reviewable until GitHub Actions passes on the exact final implementation/documentation head.
+The final documentation/status head must also remain green before this review artifact is surfaced as a completed milestone.
 
 ## Known limits / live blockers
 
