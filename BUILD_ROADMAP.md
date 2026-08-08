@@ -151,8 +151,18 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Add explicit worker telemetry event envelope with allowlisted provider/account metadata
 - [x] Add deterministic leakage, malformed-session, circular, redaction, and bounded-output tests
 - [x] Include telemetry safety module in `npm run validate`
-- [x] Implementation/documentation candidate passed repository validation (GitHub Actions run 380; 225/225 tests); exact final documentation-head CI must remain green
+- [x] Exact final head passed GitHub Actions `Validate production core` run 384 with 225/225 tests
 - [ ] Validate deployed worker logging/tracing/APM behavior against the application telemetry boundary
+
+### P7P — Capability-only provider credential boundary — VALIDATION PENDING
+- [x] Remove ambient `providerSession.accessToken` access entirely
+- [x] Require explicit capability-only credential mode on session assertions and telemetry trust paths
+- [x] Fail closed when capability callbacks return nested raw token material
+- [x] Replace secret-bearing thrown callback errors with a non-secret boundary error
+- [x] Preserve ordinary non-secret provider errors for retry classification
+- [x] Add deterministic ambient-access, return-escape, nested collection, thrown-secret, and legacy-session tests
+- [ ] Pass repository validation on the exact final implementation/documentation head
+- [ ] Validate the capability boundary against live provider adapters and deployed worker instrumentation
 
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
