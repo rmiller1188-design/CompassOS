@@ -186,7 +186,7 @@
 - [x] Pass repository validation on the implementation/documentation candidate (192/192 tests); final documentation-head CI must remain green
 - [ ] Apply the provider-evidence migration and run a live quarantine → lookup → evidence → adjudication → fresh approval → retry drill
 
-### P7L — Reconciliation retry worker and bounded backoff — VALIDATION PENDING
+### P7L — Reconciliation retry worker and bounded backoff — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Atomically claim due pending reconciliation cases with `FOR UPDATE SKIP LOCKED`
 - [x] Bind each claim to a short-lived service-role worker lease token
 - [x] Persist attempt count, next-attempt time, lease ownership, and last transient lookup error code
@@ -196,7 +196,7 @@
 - [x] Fail context drift and orchestration exceptions closed to manual review
 - [x] Deny browser roles claim, retry-schedule, release, and exhaustion authority
 - [x] Deterministic idle, retry, exhaustion, drift, orchestration-failure, terminal-release, and retry-bound tests
-- [ ] Pass repository validation on the exact final branch head
+- [x] Pass repository validation on the implementation/documentation candidate (201/201 tests); final documentation-head CI must remain green
 - [ ] Apply the retry-worker migration and validate live multi-worker contention, lease expiry, provider throttling, and end-to-end reconciliation retry
 
 - [ ] Apply and verify Supabase migrations with service-role boundaries
