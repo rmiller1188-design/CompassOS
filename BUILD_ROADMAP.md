@@ -161,8 +161,17 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Replace secret-bearing thrown callback errors with a non-secret boundary error
 - [x] Preserve ordinary non-secret provider errors for retry classification
 - [x] Add deterministic ambient-access, return-escape, nested collection, thrown-secret, and legacy-session tests
-- [x] Implementation candidate passed GitHub Actions `Validate production core` run 397 with 227/227 tests; final documentation/status head must remain green
+- [x] Exact final head passed GitHub Actions `Validate production core` run 403 with 227/227 tests
 - [ ] Validate the capability boundary against live provider adapters and deployed worker instrumentation
+
+### P7Q — Single-use expiring provider credential capabilities — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Consume provider credential capability before provider callback execution
+- [x] Reject concurrent and replayed credential-use attempts fail-closed
+- [x] Enforce a short-lived capability TTL before provider code can receive a token
+- [x] Keep callback failures and credential-escape attempts single-use and non-replayable
+- [x] Require single-use capability metadata at telemetry trust boundaries
+- [x] Implementation candidate passed GitHub Actions `Validate production core` run 410 with 230/230 tests; final documentation/status head must remain green
+- [ ] Validate expiry/replay behavior with live Google/Microsoft adapters and deployed worker instrumentation
 
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
