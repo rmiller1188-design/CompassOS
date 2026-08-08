@@ -37,7 +37,7 @@ function retryStore({ attempt = 1 } = {}) {
   };
 }
 
-test('OAuth reconciliation session preparer acquires a valid account-bound access token through the capability boundary', async () => {
+test('OAuth reconciliation session preparer acquires a valid account-bound access token through a single-use capability boundary', async () => {
   const calls = [];
   const prepare = createOAuthReconciliationSessionPreparer({
     oauthService: {
@@ -52,9 +52,14 @@ test('OAuth reconciliation session preparer acquires a valid account-bound acces
   assert.equal(prepared.providerSession.provider, 'google');
   assert.equal(prepared.providerSession.accountId, 'account-1');
   assert.equal(prepared.providerSession.credentialMode, 'capability-only');
+  assert.equal(prepared.providerSession.capabilityUseMode, 'single-use');
   assert.equal('accessToken' in prepared.providerSession, false);
   const providerResult = await prepared.providerSession.withAccessToken(async (token) => ({ authenticated: token === 'access-secret' }));
   assert.deepEqual(providerResult, { authenticated: true });
+  await assert.rejects(
+    () => prepared.providerSession.withAccessToken(async () => ({ authenticated: true })),
+    (error) => error?.code === 'PROVIDER_CREDENTIAL_CAPABILITY_CONSUMED',
+  );
 });
 
 test('session preparation fails closed on account or owner drift before OAuth access', async () => {
@@ -136,7 +141,7 @@ test('permanent OAuth failure routes directly to reconnect/manual review', async
   assert.deepEqual(store.calls[0], ['exhaust', { actionId: 'action-1', leaseToken: 'lease-1', resolutionCode: 'PROVIDER_RECONNECT_REQUIRED' }]);
 });
 
-test('refreshed OAuth session is ephemeral to orchestration and not returned by the worker', async () => {
+test('refreshed OAuth session is ephemeral to orchestration, single-use, and not returned by the worker', async () => {
   const store = retryStore();
   const prepare = createOAuthReconciliationSessionPreparer({
     oauthService: { async getValidAccessToken() { return 'rotated-access-secret'; } },
@@ -149,11 +154,16 @@ test('refreshed OAuth session is ephemeral to orchestration and not returned by 
     prepareProviderSession: prepare,
     orchestrate: async (prepared) => {
       assert.equal('accessToken' in prepared.providerSession, false);
+      assert.equal(prepared.providerSession.capabilityUseMode, 'single-use');
       const providerResult = await prepared.providerSession.withAccessToken(async (token) => {
         credentialUsed = token === 'rotated-access-secret';
         return { ok: true };
       });
       assert.deepEqual(providerResult, { ok: true });
+      await assert.rejects(
+        () => prepared.providerSession.withAccessToken(async () => ({ ok: true })),
+        (error) => error?.code === 'PROVIDER_CREDENTIAL_CAPABILITY_CONSUMED',
+      );
       return { disposition: 'resolved_succeeded', resolutionCode: 'PROVIDER_CONFIRMED_SUCCESS' };
     },
   });
