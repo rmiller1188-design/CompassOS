@@ -172,10 +172,5 @@ export function createUnifiedSyncCoordinator({
 }
 
 export function getUnifiedSyncCoordinatorPolicy() {
-  return Object.freeze({
-    supportedProviders: Object.freeze([...SUPPORTED_PROVIDERS]),
-    supportedResources: SUPPORTED_RESOURCES,
-    storeIsolation: 'per_account',
-    schedulerLeaseMode: 'require_account_lease',
-  });
+  return Object.freeze({ supportedProviders: Object.freeze([...SUPPORTED_PROVIDERS]), supportedResources: SUPPORTED_RESOURCES, storeIsolation: 'per_account' });
 }
