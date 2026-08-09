@@ -3,6 +3,7 @@ import { runIncrementalMailSync } from './mail-incremental.js';
 import { runIncrementalCalendarSync } from './calendar-incremental.js';
 import { runIncrementalContactsSync } from './contacts-incremental.js';
 import { bindSyncStoreToAccount, assertSyncStoreScope } from './account-bound-store.js';
+import { assertAccountSyncLease } from './account-sync-lease.js';
 
 const SUPPORTED_PROVIDERS = new Set(['google', 'microsoft']);
 const SUPPORTED_RESOURCES = Object.freeze(['mail', 'calendar', 'contacts']);
@@ -36,11 +37,16 @@ function validateResources(resources) {
 
 function safeFailure(error) {
   const classified = classifySyncError(error);
+  const explicitRetryable = error?.retryable === true;
   return Object.freeze({
     status: 'failed',
-    retryable: Boolean(classified.retryable),
-    reason: classified.reason,
-    retryAfterMs: Number.isFinite(classified.retryAfterMs) && classified.retryAfterMs >= 0 ? Math.ceil(classified.retryAfterMs) : null,
+    retryable: Boolean(classified.retryable || explicitRetryable),
+    reason: explicitRetryable && !classified.retryable ? 'sync_control_transient' : classified.reason,
+    retryAfterMs: Number.isFinite(error?.retryAfterMs) && error.retryAfterMs >= 0
+      ? Math.ceil(error.retryAfterMs)
+      : Number.isFinite(classified.retryAfterMs) && classified.retryAfterMs >= 0
+        ? Math.ceil(classified.retryAfterMs)
+        : null,
   });
 }
 
@@ -48,9 +54,17 @@ function createDefaultRunners() {
   return Object.freeze({ mail: runIncrementalMailSync, calendar: runIncrementalCalendarSync, contacts: runIncrementalContactsSync });
 }
 
-export function createUnifiedSyncCoordinator({ resolveAdapter, resolveStore, runners = createDefaultRunners() } = {}) {
+export function createUnifiedSyncCoordinator({
+  resolveAdapter,
+  resolveStore,
+  resolveLeaseManager = null,
+  requireAccountLease = false,
+  runners = createDefaultRunners(),
+} = {}) {
   if (typeof resolveAdapter !== 'function') throw new TypeError('resolveAdapter is required');
   if (typeof resolveStore !== 'function') throw new TypeError('resolveStore is required');
+  if (resolveLeaseManager != null && typeof resolveLeaseManager !== 'function') throw new TypeError('resolveLeaseManager must be a function');
+  if (requireAccountLease && typeof resolveLeaseManager !== 'function') throw new TypeError('Production scheduler requires resolveLeaseManager');
   for (const resource of SUPPORTED_RESOURCES) {
     if (typeof runners?.[resource] !== 'function') throw new TypeError(`Missing ${resource} sync runner`);
   }
@@ -94,19 +108,52 @@ export function createUnifiedSyncCoordinator({ resolveAdapter, resolveStore, run
         continue;
       }
 
-      for (const resource of requestedResources) {
-        if (blockedForReauthorization) {
-          accountResults.push(Object.freeze({ resource, status: 'skipped', retryable: false, reason: 'reauthorization_required', retryAfterMs: null }));
+      let leaseManager = null;
+      let accountLease = null;
+      if (resolveLeaseManager) {
+        try {
+          leaseManager = await resolveLeaseManager(account);
+          if (!leaseManager || typeof leaseManager.acquire !== 'function' || typeof leaseManager.release !== 'function') {
+            throw new TypeError('Account sync lease manager requires acquire and release');
+          }
+          accountLease = await leaseManager.acquire(account);
+          if (!accountLease) {
+            results.push(Object.freeze({ accountId: account.id, provider: account.provider, status: 'skipped', reason: 'sync_already_running', resources: Object.freeze([]) }));
+            continue;
+          }
+          assertAccountSyncLease(accountLease, account, { now: now() });
+        } catch (error) {
+          accountResults.push(Object.freeze({ resource: 'lease', ...safeFailure(error) }));
+          results.push(Object.freeze({ accountId: account.id, provider: account.provider, status: 'failed', reason: 'lease_acquisition_failed', resources: Object.freeze(accountResults) }));
           continue;
         }
-        try {
-          assertSyncStoreScope(store, account);
-          const outcome = await runners[resource]({ account, adapter, store, maxPages, now });
-          accountResults.push(Object.freeze({ resource, status: outcome?.status || 'succeeded', retryable: false, reason: null, retryAfterMs: null, mode: outcome?.mode || null, pages: outcome?.pages ?? null, written: outcome?.written ?? null }));
-        } catch (error) {
-          const failure = safeFailure(error);
-          accountResults.push(Object.freeze({ resource, ...failure }));
-          if (failure.reason === 'reauthorization_required') blockedForReauthorization = true;
+      }
+
+      try {
+        for (const resource of requestedResources) {
+          if (blockedForReauthorization) {
+            accountResults.push(Object.freeze({ resource, status: 'skipped', retryable: false, reason: 'reauthorization_required', retryAfterMs: null }));
+            continue;
+          }
+          try {
+            assertSyncStoreScope(store, account);
+            if (accountLease) assertAccountSyncLease(accountLease, account, { now: now() });
+            const outcome = await runners[resource]({ account, adapter, store, maxPages, now, accountLease, leaseManager });
+            accountResults.push(Object.freeze({ resource, status: outcome?.status || 'succeeded', retryable: false, reason: null, retryAfterMs: null, mode: outcome?.mode || null, pages: outcome?.pages ?? null, written: outcome?.written ?? null }));
+          } catch (error) {
+            const failure = safeFailure(error);
+            accountResults.push(Object.freeze({ resource, ...failure }));
+            if (failure.reason === 'reauthorization_required') blockedForReauthorization = true;
+          }
+        }
+      } finally {
+        if (accountLease) {
+          try {
+            await leaseManager.release(accountLease, account);
+          } catch (error) {
+            const failure = safeFailure(error);
+            accountResults.push(Object.freeze({ resource: 'lease', ...failure, reason: 'lease_release_failed' }));
+          }
         }
       }
 
@@ -125,5 +172,10 @@ export function createUnifiedSyncCoordinator({ resolveAdapter, resolveStore, run
 }
 
 export function getUnifiedSyncCoordinatorPolicy() {
-  return Object.freeze({ supportedProviders: Object.freeze([...SUPPORTED_PROVIDERS]), supportedResources: SUPPORTED_RESOURCES, storeIsolation: 'per_account' });
+  return Object.freeze({
+    supportedProviders: Object.freeze([...SUPPORTED_PROVIDERS]),
+    supportedResources: SUPPORTED_RESOURCES,
+    storeIsolation: 'per_account',
+    schedulerLeaseMode: 'require_account_lease',
+  });
 }
