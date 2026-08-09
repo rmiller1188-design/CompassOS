@@ -247,6 +247,16 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Include the coordinator in `npm run validate` and bump package version to 0.42.0
 - [ ] Validate live Google/Microsoft multi-account OAuth fanout, cursor persistence, throttling, and deployed scheduler execution
 
+### P7Z — Account-bound multi-account sync persistence — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Resolve persistence separately for each active connected account before mail/calendar/contacts sync runners execute
+- [x] Wrap resolved stores in an exact account/provider scope and reject cross-account method calls before the underlying store can run
+- [x] Reject raw sync-store object reuse across active accounts within the same fanout run
+- [x] Skip inactive accounts before adapter or persistence resolution
+- [x] Sanitize and isolate store-resolution failures to the affected account
+- [x] Include deterministic account-scope, cross-account rejection, raw-store reuse, and partial-failure coverage
+- [x] Include the account-bound store boundary in `npm run validate` and bump package version to 0.43.0
+- [ ] Validate live Supabase per-account store resolution, RLS, cursor persistence, and multi-account scheduler execution
+
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, reconnect, refresh/rotation, and provider-side reconciliation markers

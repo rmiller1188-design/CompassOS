@@ -2,6 +2,7 @@ import { classifySyncError } from './mail-incremental.js';
 import { runIncrementalMailSync } from './mail-incremental.js';
 import { runIncrementalCalendarSync } from './calendar-incremental.js';
 import { runIncrementalContactsSync } from './contacts-incremental.js';
+import { bindSyncStoreToAccount, assertSyncStoreScope } from './account-bound-store.js';
 
 const SUPPORTED_PROVIDERS = new Set(['google', 'microsoft']);
 const SUPPORTED_RESOURCES = Object.freeze(['mail', 'calendar', 'contacts']);
@@ -39,33 +40,27 @@ function safeFailure(error) {
     status: 'failed',
     retryable: Boolean(classified.retryable),
     reason: classified.reason,
-    retryAfterMs: Number.isFinite(classified.retryAfterMs) && classified.retryAfterMs >= 0
-      ? Math.ceil(classified.retryAfterMs)
-      : null,
+    retryAfterMs: Number.isFinite(classified.retryAfterMs) && classified.retryAfterMs >= 0 ? Math.ceil(classified.retryAfterMs) : null,
   });
 }
 
 function createDefaultRunners() {
-  return Object.freeze({
-    mail: runIncrementalMailSync,
-    calendar: runIncrementalCalendarSync,
-    contacts: runIncrementalContactsSync,
-  });
+  return Object.freeze({ mail: runIncrementalMailSync, calendar: runIncrementalCalendarSync, contacts: runIncrementalContactsSync });
 }
 
-export function createUnifiedSyncCoordinator({ resolveAdapter, runners = createDefaultRunners() } = {}) {
+export function createUnifiedSyncCoordinator({ resolveAdapter, resolveStore, runners = createDefaultRunners() } = {}) {
   if (typeof resolveAdapter !== 'function') throw new TypeError('resolveAdapter is required');
+  if (typeof resolveStore !== 'function') throw new TypeError('resolveStore is required');
   for (const resource of SUPPORTED_RESOURCES) {
     if (typeof runners?.[resource] !== 'function') throw new TypeError(`Missing ${resource} sync runner`);
   }
 
-  return async function runUnifiedSync({ accounts, store, resources, maxPages = 100, now = () => new Date() } = {}) {
-    if (!store) throw new TypeError('Sync store is required');
+  return async function runUnifiedSync({ accounts, resources, maxPages = 100, now = () => new Date() } = {}) {
     if (!Number.isInteger(maxPages) || maxPages <= 0) throw new TypeError('maxPages must be a positive integer');
-
     const connectedAccounts = validateAccounts(accounts);
     const requestedResources = validateResources(resources);
     const results = [];
+    const resolvedStoreObjects = new WeakSet();
 
     for (const account of connectedAccounts) {
       if (account.status && account.status !== 'active') {
@@ -85,12 +80,27 @@ export function createUnifiedSyncCoordinator({ resolveAdapter, runners = createD
         continue;
       }
 
+      let store;
+      try {
+        const resolvedStore = await resolveStore(account);
+        if (!resolvedStore || (typeof resolvedStore !== 'object' && typeof resolvedStore !== 'function')) throw new TypeError('Sync store resolution returned no store');
+        if (resolvedStoreObjects.has(resolvedStore)) throw new TypeError('Resolved sync store object cannot be reused across connected accounts');
+        resolvedStoreObjects.add(resolvedStore);
+        store = bindSyncStoreToAccount({ store: resolvedStore, account });
+        assertSyncStoreScope(store, account);
+      } catch (error) {
+        accountResults.push(Object.freeze({ resource: 'account', ...safeFailure(error) }));
+        results.push(Object.freeze({ accountId: account.id, provider: account.provider, status: 'failed', reason: 'store_resolution_failed', resources: Object.freeze(accountResults) }));
+        continue;
+      }
+
       for (const resource of requestedResources) {
         if (blockedForReauthorization) {
           accountResults.push(Object.freeze({ resource, status: 'skipped', retryable: false, reason: 'reauthorization_required', retryAfterMs: null }));
           continue;
         }
         try {
+          assertSyncStoreScope(store, account);
           const outcome = await runners[resource]({ account, adapter, store, maxPages, now });
           accountResults.push(Object.freeze({ resource, status: outcome?.status || 'succeeded', retryable: false, reason: null, retryAfterMs: null, mode: outcome?.mode || null, pages: outcome?.pages ?? null, written: outcome?.written ?? null }));
         } catch (error) {
@@ -103,29 +113,17 @@ export function createUnifiedSyncCoordinator({ resolveAdapter, runners = createD
       const failed = accountResults.some((item) => item.status === 'failed');
       const retryable = accountResults.some((item) => item.status === 'failed' && item.retryable);
       const requiresReauthorization = accountResults.some((item) => item.reason === 'reauthorization_required');
-      results.push(Object.freeze({
-        accountId: account.id,
-        provider: account.provider,
-        status: failed ? 'failed' : 'succeeded',
-        retryable,
-        requiresReauthorization,
-        resources: Object.freeze(accountResults),
-      }));
+      results.push(Object.freeze({ accountId: account.id, provider: account.provider, status: failed ? 'failed' : 'succeeded', retryable, requiresReauthorization, resources: Object.freeze(accountResults) }));
     }
 
     return Object.freeze({
       status: results.some((item) => item.status === 'failed') ? 'partial_failure' : 'succeeded',
       accounts: Object.freeze(results),
-      summary: Object.freeze({
-        total: results.length,
-        succeeded: results.filter((item) => item.status === 'succeeded').length,
-        failed: results.filter((item) => item.status === 'failed').length,
-        skipped: results.filter((item) => item.status === 'skipped').length,
-      }),
+      summary: Object.freeze({ total: results.length, succeeded: results.filter((item) => item.status === 'succeeded').length, failed: results.filter((item) => item.status === 'failed').length, skipped: results.filter((item) => item.status === 'skipped').length }),
     });
   };
 }
 
 export function getUnifiedSyncCoordinatorPolicy() {
-  return Object.freeze({ supportedProviders: Object.freeze([...SUPPORTED_PROVIDERS]), supportedResources: SUPPORTED_RESOURCES });
+  return Object.freeze({ supportedProviders: Object.freeze([...SUPPORTED_PROVIDERS]), supportedResources: SUPPORTED_RESOURCES, storeIsolation: 'per_account' });
 }
