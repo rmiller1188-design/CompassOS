@@ -6,6 +6,7 @@ import {
 } from './provider-reconciliation.js';
 import { assertPurposeBoundProviderSession } from './purpose-bound-provider-session.js';
 import { createReconciliationEgressFetch } from './reconciliation-egress-policy.js';
+import { normalizeReconciliationProviderLookupError } from './reconciliation-provider-errors.js';
 
 function requireString(value, label) {
   if (typeof value !== 'string' || !value.trim()) throw new TypeError(`${label} is required`);
@@ -35,18 +36,22 @@ function createCapabilityLookup({ provider, kind, fetchImpl }) {
     assertLookupContext({ account, reconciliation, providerSession });
     if (account.provider !== provider) throw new Error(`Purpose-bound ${provider} provider session is required`);
 
-    return providerSession.withAccessToken(async (accessToken) => {
-      const lookup = factory({
-        fetchImpl: guardedFetch,
-        tokenResolver: async (resolvedAccount) => {
-          if (resolvedAccount?.id !== account.id || resolvedAccount?.provider !== account.provider) {
-            throw new Error('Provider lookup attempted credential use for a different account');
-          }
-          return accessToken;
-        },
+    try {
+      return await providerSession.withAccessToken(async (accessToken) => {
+        const lookup = factory({
+          fetchImpl: guardedFetch,
+          tokenResolver: async (resolvedAccount) => {
+            if (resolvedAccount?.id !== account.id || resolvedAccount?.provider !== account.provider) {
+              throw new Error('Provider lookup attempted credential use for a different account');
+            }
+            return accessToken;
+          },
+        });
+        return lookup({ account, reconciliation, action });
       });
-      return lookup({ account, reconciliation, action });
-    });
+    } catch (error) {
+      throw normalizeReconciliationProviderLookupError(error);
+    }
   };
 }
 
