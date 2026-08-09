@@ -197,7 +197,7 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Disable automatic redirects and ambient browser credentials at the guarded fetch boundary
 - [x] Require bearer authorization and reject unsupported provider/kind egress profiles fail-closed
 - [x] Preserve the existing P7S provider-adapter contract while composing the egress guard around every purpose-bound reconciliation request
-- [x] Add deterministic origin lookalike, path, method, body, redirect-policy, credential, URL-shape, and route-profile coverage
+- [x] Add deterministic origin lookalike, path, method, body, redirect-policy, credential, URL-shape, auth, and route-profile coverage
 - [x] Exact final head passed GitHub Actions `Validate production core` run 452
 - [ ] Validate live provider redirects, DNS/TLS/proxy behavior, and constrained OAuth → reconciliation execution
 
@@ -236,6 +236,16 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Add deterministic extreme-clock-skew, malformed-provider-date, and canonical Google reconciliation coverage
 - [x] Include the implementation in the existing production-core validation path
 - [ ] Validate live Google/Microsoft response clocks, deployed worker skew, proxy transformations, and service-role retry scheduling
+
+### P7Y — Unified multi-account incremental sync coordinator — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Orchestrate existing mail, calendar, and contacts incremental runners across multiple active Google and Microsoft connected accounts
+- [x] Validate duplicate accounts, supported providers/resources, and page limits before provider work
+- [x] Isolate account failures so one mailbox/account cannot prevent other connected accounts from progressing
+- [x] Short-circuit remaining resources only for the account that requires reauthorization
+- [x] Skip inactive accounts before adapter resolution and avoid raw provider error messages in coordinator result envelopes
+- [x] Add deterministic multi-account success, partial-failure, reauthorization, inactive-account, adapter-resolution, de-duplication, and fail-closed validation coverage
+- [x] Include the coordinator in `npm run validate` and bump package version to 0.42.0
+- [ ] Validate live Google/Microsoft multi-account OAuth fanout, cursor persistence, throttling, and deployed scheduler execution
 
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
