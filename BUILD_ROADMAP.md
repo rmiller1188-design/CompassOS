@@ -220,6 +220,15 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Implementation/package head passed GitHub Actions `Validate production core` run 472 with 261/261 tests
 - [ ] Validate live Google/Microsoft error payloads, HTTP-date Retry-After end-to-end, throttling, reconnect, and service-role Supabase execution
 
+### P7W — End-to-end reconciliation Retry-After propagation — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Normalize retry-relevant/auth provider responses immediately after the guarded response boundary
+- [x] Preserve HTTP-date and delta-seconds Retry-After through canonical Google/Microsoft purpose-bound reconciliation
+- [x] Reuse sanitized stable provider error semantics and the existing 15-minute retry ceiling
+- [x] Preserve conservative non-transient 4xx/404 provider reconciliation behavior
+- [x] Add deterministic Google 429 and Microsoft 503 HTTP-date propagation coverage
+- [x] Implementation candidate passed GitHub Actions `Validate production core` run 481 with 263/263 tests
+- [ ] Validate live provider Retry-After/throttling, clock skew, proxy transformations, and service-role retry scheduling
+
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, reconnect, refresh/rotation, and provider-side reconciliation markers
