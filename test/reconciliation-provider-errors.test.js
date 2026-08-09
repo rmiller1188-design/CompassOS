@@ -11,20 +11,20 @@ import {
   parseProviderRetryAfter,
 } from '../src/actions/reconciliation-provider-errors.js';
 
-function providerSession() {
+function providerSession(provider = 'google') {
   return createPurposeBoundProviderSession({
-    session: createContainedProviderSession({ provider: 'google', accountId: 'acct-1', accessToken: 'provider-secret' }),
+    session: createContainedProviderSession({ provider, accountId: 'acct-1', accessToken: 'provider-secret' }),
     purpose: 'reconciliation.lookup',
     subjectId: 'act-1',
   });
 }
 
-function input() {
+function input(provider = 'google') {
   return {
-    account: { id: 'acct-1', provider: 'google', status: 'active' },
+    account: { id: 'acct-1', provider, status: 'active' },
     reconciliation: { actionId: 'act-1', actionType: 'mail.reply', idempotencyKeyHash: 'a'.repeat(64), status: 'pending' },
     action: { actionType: 'mail.reply' },
-    providerSession: providerSession(),
+    providerSession: providerSession(provider),
   };
 }
 
@@ -69,6 +69,47 @@ test('purpose-bound 429 provider failures are sanitized and remain retryable', a
       resolutionCode: 'PROVIDER_LOOKUP_TRANSIENT',
       retryAfterMs: 7000,
     });
+    return true;
+  });
+});
+
+test('HTTP-date Retry-After survives the canonical Google reconciliation adapter', async () => {
+  const lookup = createPurposeBoundProviderReconciliationLookup({
+    googleFetch: async () => response({
+      status: 429,
+      headers: { 'retry-after': 'Wed, 31 Dec 2099 23:59:59 GMT', 'content-type': 'application/json' },
+      json: { error: { code: 'rateLimitExceeded', message: 'provider detail' } },
+    }),
+    microsoftFetch: async () => { throw new Error('unused'); },
+  });
+
+  await assert.rejects(() => lookup(input('google')), (error) => {
+    assert.equal(error.code, 'PROVIDER_RATE_LIMITED');
+    assert.equal(error.retryAfterMs, getReconciliationProviderErrorPolicy().maxRetryAfterMs);
+    assert.deepEqual(classifyReconciliationProviderError(error), {
+      disposition: 'retry_later',
+      resolutionCode: 'PROVIDER_LOOKUP_TRANSIENT',
+      retryAfterMs: getReconciliationProviderErrorPolicy().maxRetryAfterMs,
+    });
+    return true;
+  });
+});
+
+test('HTTP-date Retry-After survives the canonical Microsoft reconciliation adapter', async () => {
+  const lookup = createPurposeBoundProviderReconciliationLookup({
+    googleFetch: async () => { throw new Error('unused'); },
+    microsoftFetch: async () => response({
+      status: 503,
+      headers: { 'retry-after': 'Wed, 31 Dec 2099 23:59:59 GMT', 'content-type': 'application/json' },
+      json: { error: { code: 'ServiceUnavailable', message: 'provider detail' } },
+    }),
+  });
+
+  await assert.rejects(() => lookup(input('microsoft')), (error) => {
+    assert.equal(error.code, 'PROVIDER_TRANSIENT');
+    assert.equal(error.status, 503);
+    assert.equal(error.retryAfterMs, getReconciliationProviderErrorPolicy().maxRetryAfterMs);
+    assert.equal(error.providerCode, 'ServiceUnavailable');
     return true;
   });
 });
