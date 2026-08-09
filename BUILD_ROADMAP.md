@@ -198,8 +198,18 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Require bearer authorization and reject unsupported provider/kind egress profiles fail-closed
 - [x] Preserve the existing P7S provider-adapter contract while composing the egress guard around every purpose-bound reconciliation request
 - [x] Add deterministic origin lookalike, path, method, body, redirect-policy, credential, URL-shape, and route-profile coverage
-- [x] Source candidate passed GitHub Actions `Validate production core` run 448; final documentation/roadmap head must remain green
+- [x] Exact final head passed GitHub Actions `Validate production core` run 452
 - [ ] Validate live provider redirects, DNS/TLS/proxy behavior, and constrained OAuth → reconciliation execution
+
+### P7U — Reconciliation provider response trust boundary — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Bound provider reconciliation response bodies to 256 KiB before classification
+- [x] Reject oversized declared `Content-Length` and stream-count bodies that omit a length
+- [x] Reject redirected, off-route, and non-JSON provider responses at the guarded fetch boundary
+- [x] Eagerly validate UTF-8 JSON before provider reconciliation can classify zero-match absence
+- [x] Preserve status metadata on response-boundary errors for downstream retry/manual-review classification
+- [x] Add deterministic oversized, chunked, redirect, final-URL, media-type, malformed-JSON, and valid-response coverage
+- [x] Implementation candidate passed GitHub Actions `Validate production core` run 457 with 255/255 tests
+- [ ] Validate live Google/Microsoft response headers/streaming behavior, proxy transformations, and provider encoding edge cases
 
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
