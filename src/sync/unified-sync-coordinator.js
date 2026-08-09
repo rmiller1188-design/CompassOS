@@ -1,0 +1,131 @@
+import { classifySyncError } from './mail-incremental.js';
+import { runIncrementalMailSync } from './mail-incremental.js';
+import { runIncrementalCalendarSync } from './calendar-incremental.js';
+import { runIncrementalContactsSync } from './contacts-incremental.js';
+
+const SUPPORTED_PROVIDERS = new Set(['google', 'microsoft']);
+const SUPPORTED_RESOURCES = Object.freeze(['mail', 'calendar', 'contacts']);
+
+function validateAccounts(accounts) {
+  if (!Array.isArray(accounts)) throw new TypeError('Connected accounts must be an array');
+  const seen = new Set();
+  return accounts.map((account) => {
+    if (!account?.id || !account?.provider) throw new TypeError('Each connected account requires id and provider');
+    if (!SUPPORTED_PROVIDERS.has(account.provider)) throw new TypeError(`Unsupported connected-account provider: ${account.provider}`);
+    if (seen.has(account.id)) throw new TypeError(`Duplicate connected-account id: ${account.id}`);
+    seen.add(account.id);
+    return account;
+  });
+}
+
+function validateResources(resources) {
+  const requested = resources ?? SUPPORTED_RESOURCES;
+  if (!Array.isArray(requested) || requested.length === 0) throw new TypeError('At least one sync resource is required');
+  const unique = [];
+  const seen = new Set();
+  for (const resource of requested) {
+    if (!SUPPORTED_RESOURCES.includes(resource)) throw new TypeError(`Unsupported sync resource: ${resource}`);
+    if (!seen.has(resource)) {
+      seen.add(resource);
+      unique.push(resource);
+    }
+  }
+  return unique;
+}
+
+function safeFailure(error) {
+  const classified = classifySyncError(error);
+  return Object.freeze({
+    status: 'failed',
+    retryable: Boolean(classified.retryable),
+    reason: classified.reason,
+    retryAfterMs: Number.isFinite(classified.retryAfterMs) && classified.retryAfterMs >= 0
+      ? Math.ceil(classified.retryAfterMs)
+      : null,
+  });
+}
+
+function createDefaultRunners() {
+  return Object.freeze({
+    mail: runIncrementalMailSync,
+    calendar: runIncrementalCalendarSync,
+    contacts: runIncrementalContactsSync,
+  });
+}
+
+export function createUnifiedSyncCoordinator({ resolveAdapter, runners = createDefaultRunners() } = {}) {
+  if (typeof resolveAdapter !== 'function') throw new TypeError('resolveAdapter is required');
+  for (const resource of SUPPORTED_RESOURCES) {
+    if (typeof runners?.[resource] !== 'function') throw new TypeError(`Missing ${resource} sync runner`);
+  }
+
+  return async function runUnifiedSync({ accounts, store, resources, maxPages = 100, now = () => new Date() } = {}) {
+    if (!store) throw new TypeError('Sync store is required');
+    if (!Number.isInteger(maxPages) || maxPages <= 0) throw new TypeError('maxPages must be a positive integer');
+
+    const connectedAccounts = validateAccounts(accounts);
+    const requestedResources = validateResources(resources);
+    const results = [];
+
+    for (const account of connectedAccounts) {
+      if (account.status && account.status !== 'active') {
+        results.push(Object.freeze({ accountId: account.id, provider: account.provider, status: 'skipped', reason: 'account_inactive', resources: Object.freeze([]) }));
+        continue;
+      }
+
+      const accountResults = [];
+      let blockedForReauthorization = false;
+      let adapter;
+      try {
+        adapter = await resolveAdapter(account);
+        if (!adapter) throw new TypeError('Provider adapter resolution returned no adapter');
+      } catch (error) {
+        accountResults.push(Object.freeze({ resource: 'account', ...safeFailure(error) }));
+        results.push(Object.freeze({ accountId: account.id, provider: account.provider, status: 'failed', reason: 'adapter_resolution_failed', resources: Object.freeze(accountResults) }));
+        continue;
+      }
+
+      for (const resource of requestedResources) {
+        if (blockedForReauthorization) {
+          accountResults.push(Object.freeze({ resource, status: 'skipped', retryable: false, reason: 'reauthorization_required', retryAfterMs: null }));
+          continue;
+        }
+        try {
+          const outcome = await runners[resource]({ account, adapter, store, maxPages, now });
+          accountResults.push(Object.freeze({ resource, status: outcome?.status || 'succeeded', retryable: false, reason: null, retryAfterMs: null, mode: outcome?.mode || null, pages: outcome?.pages ?? null, written: outcome?.written ?? null }));
+        } catch (error) {
+          const failure = safeFailure(error);
+          accountResults.push(Object.freeze({ resource, ...failure }));
+          if (failure.reason === 'reauthorization_required') blockedForReauthorization = true;
+        }
+      }
+
+      const failed = accountResults.some((item) => item.status === 'failed');
+      const retryable = accountResults.some((item) => item.status === 'failed' && item.retryable);
+      const requiresReauthorization = accountResults.some((item) => item.reason === 'reauthorization_required');
+      results.push(Object.freeze({
+        accountId: account.id,
+        provider: account.provider,
+        status: failed ? 'failed' : 'succeeded',
+        retryable,
+        requiresReauthorization,
+        resources: Object.freeze(accountResults),
+      }));
+    }
+
+    return Object.freeze({
+      status: results.some((item) => item.status === 'failed') ? 'partial_failure' : 'succeeded',
+      accounts: Object.freeze(results),
+      summary: Object.freeze({
+        total: results.length,
+        succeeded: results.filter((item) => item.status === 'succeeded').length,
+        failed: results.filter((item) => item.status === 'failed').length,
+        skipped: results.filter((item) => item.status === 'skipped').length,
+      }),
+    });
+  };
+}
+
+export function getUnifiedSyncCoordinatorPolicy() {
+  return Object.freeze({ supportedProviders: Object.freeze([...SUPPORTED_PROVIDERS]), supportedResources: SUPPORTED_RESOURCES });
+}
