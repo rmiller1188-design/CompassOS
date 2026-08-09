@@ -63,12 +63,13 @@ function assertSafeRequest(init = {}) {
   if (method !== 'GET') throw policyError('PROVIDER_EGRESS_METHOD_BLOCKED', `Reconciliation provider method is not allowed: ${method}`);
   if (init?.body != null) throw policyError('PROVIDER_EGRESS_BODY_BLOCKED', 'Reconciliation provider requests may not include a body');
 
-  const headers = new Headers(init?.headers || {});
-  const authorization = headers.get('authorization');
+  const normalizedHeaders = new Headers(init?.headers || {});
+  const authorization = normalizedHeaders.get('authorization');
   if (!authorization || !/^Bearer\s+\S+$/i.test(authorization)) {
     throw policyError('PROVIDER_EGRESS_AUTH_REQUIRED', 'Reconciliation provider request requires a bearer credential');
   }
 
+  const headers = Object.fromEntries(normalizedHeaders.entries());
   return {
     ...init,
     method: 'GET',
