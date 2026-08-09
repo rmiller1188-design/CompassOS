@@ -257,6 +257,16 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Include the account-bound store boundary in `npm run validate` and bump package version to 0.43.0
 - [ ] Validate live Supabase per-account store resolution, RLS, cursor persistence, and multi-account scheduler execution
 
+### P7AA — Account-scoped sync scheduler leases — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Add service-role-only per-account lease persistence plus atomic claim, heartbeat, and release RPCs
+- [x] Bind leases to the exact account/provider/worker/token with a bounded 5-second to 15-minute lease duration
+- [x] Allow production scheduler composition to require account leasing fail-closed before any mail/calendar/contacts resource runner executes
+- [x] Skip an already-leased account without executing provider resource work and release acquired leases in a `finally` boundary
+- [x] Sanitize lease-backend failures and keep them isolated to the affected connected account
+- [x] Add deterministic contention, scope-drift, expiry, cleanup, backend-sanitization, and fail-closed composition coverage
+- [x] Include the lease module in `npm run validate` and bump package version to 0.44.0
+- [ ] Apply the migration and validate live service-role Supabase RLS/RPC behavior, multi-worker contention, heartbeat/expiry recovery, and cursor advancement
+
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, reconnect, refresh/rotation, and provider-side reconciliation markers
