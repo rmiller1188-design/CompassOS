@@ -6,7 +6,10 @@ import {
 } from './provider-reconciliation.js';
 import { assertPurposeBoundProviderSession } from './purpose-bound-provider-session.js';
 import { createReconciliationEgressFetch } from './reconciliation-egress-policy.js';
-import { normalizeReconciliationProviderLookupError } from './reconciliation-provider-errors.js';
+import {
+  createReconciliationProviderError,
+  normalizeReconciliationProviderLookupError,
+} from './reconciliation-provider-errors.js';
 
 function requireString(value, label) {
   if (typeof value !== 'string' || !value.trim()) throw new TypeError(`${label} is required`);
@@ -26,11 +29,27 @@ function assertLookupContext({ account, reconciliation, providerSession }) {
   return { provider, accountId, actionId };
 }
 
+function shouldNormalizeProviderFailure(status) {
+  return status === 401 || status === 403 || status === 408 || status === 425 || status === 429 || status >= 500;
+}
+
+function createSemanticProviderFetch(guardedFetch) {
+  return async function semanticProviderFetch(url, init = {}) {
+    const response = await guardedFetch(url, init);
+    if (!response?.ok && shouldNormalizeProviderFailure(Number(response?.status || 0))) {
+      const payload = await response.json();
+      throw createReconciliationProviderError(response, payload);
+    }
+    return response;
+  };
+}
+
 function createCapabilityLookup({ provider, kind, fetchImpl }) {
   const factory = provider === 'google'
     ? (kind === 'calendar' ? createGoogleCalendarReconciliationLookup : createGmailReconciliationLookup)
     : (kind === 'calendar' ? createMicrosoftCalendarReconciliationLookup : createMicrosoftReconciliationLookup);
   const guardedFetch = createReconciliationEgressFetch({ provider, kind, fetchImpl });
+  const semanticFetch = createSemanticProviderFetch(guardedFetch);
 
   return async function capabilityLookup({ account, reconciliation, action = null, providerSession }) {
     assertLookupContext({ account, reconciliation, providerSession });
@@ -39,7 +58,7 @@ function createCapabilityLookup({ provider, kind, fetchImpl }) {
     try {
       return await providerSession.withAccessToken(async (accessToken) => {
         const lookup = factory({
-          fetchImpl: guardedFetch,
+          fetchImpl: semanticFetch,
           tokenResolver: async (resolvedAccount) => {
             if (resolvedAccount?.id !== account.id || resolvedAccount?.provider !== account.provider) {
               throw new Error('Provider lookup attempted credential use for a different account');
