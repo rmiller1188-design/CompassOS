@@ -229,6 +229,14 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Implementation candidate passed GitHub Actions `Validate production core` run 481 with 263/263 tests
 - [ ] Validate live provider Retry-After/throttling, clock skew, proxy transformations, and service-role retry scheduling
 
+### P7X — Provider-clock HTTP-date Retry-After hardening — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Use a valid provider HTTP `Date` header as the reference clock for HTTP-date `Retry-After`
+- [x] Preserve delta-seconds behavior and fall back to the trusted local clock when provider `Date` is absent or malformed
+- [x] Retain the existing 15-minute retry ceiling and sanitized provider-error semantics
+- [x] Add deterministic extreme-clock-skew, malformed-provider-date, and canonical Google reconciliation coverage
+- [x] Include the implementation in the existing production-core validation path
+- [ ] Validate live Google/Microsoft response clocks, deployed worker skew, proxy transformations, and service-role retry scheduling
+
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, reconnect, refresh/rotation, and provider-side reconciliation markers
