@@ -1,3 +1,5 @@
+const MAX_PROVIDER_RESPONSE_BYTES = 256 * 1024;
+
 const PROVIDER_ROUTES = Object.freeze({
   google: Object.freeze({
     mail: Object.freeze({
@@ -80,6 +82,106 @@ function assertSafeRequest(init = {}) {
   };
 }
 
+function assertResponseMetadata(response, route) {
+  if (!response || typeof response !== 'object') {
+    throw policyError('PROVIDER_RESPONSE_INVALID', 'Provider reconciliation response is invalid');
+  }
+  if (response.redirected === true || response.type === 'opaqueredirect') {
+    throw policyError('PROVIDER_RESPONSE_REDIRECT_BLOCKED', 'Redirected provider reconciliation responses are not allowed');
+  }
+
+  const finalUrl = typeof response.url === 'string' ? response.url.trim() : '';
+  if (finalUrl) assertSafeUrl(finalUrl, route);
+
+  const contentType = response.headers?.get?.('content-type');
+  if (contentType && !/(^|;)\s*application\/(?:[a-z0-9.+-]*\+)?json(?:\s*;|$)/i.test(contentType)) {
+    throw policyError('PROVIDER_RESPONSE_CONTENT_TYPE_BLOCKED', `Provider reconciliation response content type is not JSON: ${contentType}`);
+  }
+
+  const declaredLength = response.headers?.get?.('content-length');
+  if (declaredLength != null && declaredLength !== '') {
+    const bytes = Number(declaredLength);
+    if (!Number.isSafeInteger(bytes) || bytes < 0) {
+      throw policyError('PROVIDER_RESPONSE_LENGTH_INVALID', 'Provider reconciliation response content length is invalid');
+    }
+    if (bytes > MAX_PROVIDER_RESPONSE_BYTES) {
+      throw policyError('PROVIDER_RESPONSE_TOO_LARGE', `Provider reconciliation response exceeds ${MAX_PROVIDER_RESPONSE_BYTES} bytes`);
+    }
+  }
+}
+
+async function readStreamBytes(response) {
+  const reader = response?.body?.getReader?.();
+  if (!reader) return null;
+
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = value instanceof Uint8Array ? value : new Uint8Array(value || []);
+      total += chunk.byteLength;
+      if (total > MAX_PROVIDER_RESPONSE_BYTES) {
+        await reader.cancel?.().catch?.(() => {});
+        throw policyError('PROVIDER_RESPONSE_TOO_LARGE', `Provider reconciliation response exceeds ${MAX_PROVIDER_RESPONSE_BYTES} bytes`);
+      }
+      chunks.push(chunk);
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+async function readBoundedJson(response) {
+  const streamed = await readStreamBytes(response);
+  if (streamed) {
+    if (streamed.byteLength === 0) return {};
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(streamed);
+    return JSON.parse(text);
+  }
+
+  if (typeof response.json !== 'function') {
+    throw policyError('PROVIDER_RESPONSE_INVALID', 'Provider reconciliation response cannot be decoded as JSON');
+  }
+  const payload = await response.json();
+  let serialized;
+  try {
+    serialized = JSON.stringify(payload);
+  } catch {
+    throw policyError('PROVIDER_RESPONSE_INVALID_JSON', 'Provider reconciliation response JSON cannot be serialized');
+  }
+  if (Buffer.byteLength(serialized || '', 'utf8') > MAX_PROVIDER_RESPONSE_BYTES) {
+    throw policyError('PROVIDER_RESPONSE_TOO_LARGE', `Provider reconciliation response exceeds ${MAX_PROVIDER_RESPONSE_BYTES} bytes`);
+  }
+  return payload;
+}
+
+function guardResponse(response, route) {
+  assertResponseMetadata(response, route);
+  let consumed = false;
+  return new Proxy(response, {
+    get(target, property) {
+      if (property === 'json') {
+        return async () => {
+          if (consumed) throw policyError('PROVIDER_RESPONSE_CONSUMED', 'Provider reconciliation response body has already been consumed');
+          consumed = true;
+          return readBoundedJson(target);
+        };
+      }
+      return Reflect.get(target, property, target);
+    },
+  });
+}
+
 export function createReconciliationEgressFetch({ provider, kind, fetchImpl = globalThis.fetch } = {}) {
   const normalizedProvider = requireString(provider, 'Provider').toLowerCase();
   const normalizedKind = requireString(kind, 'Provider route kind').toLowerCase();
@@ -89,12 +191,14 @@ export function createReconciliationEgressFetch({ provider, kind, fetchImpl = gl
   return async function guardedProviderFetch(url, init = {}) {
     const parsed = assertSafeUrl(url, route);
     const safeInit = assertSafeRequest(init);
-    return fetchImpl(parsed.toString(), safeInit);
+    const response = await fetchImpl(parsed.toString(), safeInit);
+    return guardResponse(response, route);
   };
 }
 
 export function getReconciliationEgressPolicy() {
   return Object.freeze({
+    maxProviderResponseBytes: MAX_PROVIDER_RESPONSE_BYTES,
     google: Object.freeze({
       mailOrigin: PROVIDER_ROUTES.google.mail.origin,
       calendarOrigin: PROVIDER_ROUTES.google.calendar.origin,
