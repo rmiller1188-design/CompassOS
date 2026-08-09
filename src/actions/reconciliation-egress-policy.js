@@ -28,9 +28,10 @@ function requireString(value, label) {
   return value.trim();
 }
 
-function policyError(code, message) {
+function policyError(code, message, status = null) {
   const error = new Error(message);
   error.code = code;
+  if (Number.isInteger(status)) error.status = status;
   return error;
 }
 
@@ -87,25 +88,25 @@ function assertResponseMetadata(response, route) {
     throw policyError('PROVIDER_RESPONSE_INVALID', 'Provider reconciliation response is invalid');
   }
   if (response.redirected === true || response.type === 'opaqueredirect') {
-    throw policyError('PROVIDER_RESPONSE_REDIRECT_BLOCKED', 'Redirected provider reconciliation responses are not allowed');
+    throw policyError('PROVIDER_RESPONSE_REDIRECT_BLOCKED', 'Redirected provider reconciliation responses are not allowed', response.status);
   }
 
   const finalUrl = typeof response.url === 'string' ? response.url.trim() : '';
   if (finalUrl) assertSafeUrl(finalUrl, route);
 
   const contentType = response.headers?.get?.('content-type');
-  if (contentType && !/(^|;)\s*application\/(?:[a-z0-9.+-]*\+)?json(?:\s*;|$)/i.test(contentType)) {
-    throw policyError('PROVIDER_RESPONSE_CONTENT_TYPE_BLOCKED', `Provider reconciliation response content type is not JSON: ${contentType}`);
+  if (contentType && !/^application\/(?:[a-z0-9.+-]*\+)?json(?:\s*;|$)/i.test(contentType.trim())) {
+    throw policyError('PROVIDER_RESPONSE_CONTENT_TYPE_BLOCKED', `Provider reconciliation response content type is not JSON: ${contentType}`, response.status);
   }
 
   const declaredLength = response.headers?.get?.('content-length');
   if (declaredLength != null && declaredLength !== '') {
     const bytes = Number(declaredLength);
     if (!Number.isSafeInteger(bytes) || bytes < 0) {
-      throw policyError('PROVIDER_RESPONSE_LENGTH_INVALID', 'Provider reconciliation response content length is invalid');
+      throw policyError('PROVIDER_RESPONSE_LENGTH_INVALID', 'Provider reconciliation response content length is invalid', response.status);
     }
     if (bytes > MAX_PROVIDER_RESPONSE_BYTES) {
-      throw policyError('PROVIDER_RESPONSE_TOO_LARGE', `Provider reconciliation response exceeds ${MAX_PROVIDER_RESPONSE_BYTES} bytes`);
+      throw policyError('PROVIDER_RESPONSE_TOO_LARGE', `Provider reconciliation response exceeds ${MAX_PROVIDER_RESPONSE_BYTES} bytes`, response.status);
     }
   }
 }
@@ -123,13 +124,13 @@ async function readStreamBytes(response) {
       const chunk = value instanceof Uint8Array ? value : new Uint8Array(value || []);
       total += chunk.byteLength;
       if (total > MAX_PROVIDER_RESPONSE_BYTES) {
-        await reader.cancel?.().catch?.(() => {});
-        throw policyError('PROVIDER_RESPONSE_TOO_LARGE', `Provider reconciliation response exceeds ${MAX_PROVIDER_RESPONSE_BYTES} bytes`);
+        try { await reader.cancel?.(); } catch {}
+        throw policyError('PROVIDER_RESPONSE_TOO_LARGE', `Provider reconciliation response exceeds ${MAX_PROVIDER_RESPONSE_BYTES} bytes`, response.status);
       }
       chunks.push(chunk);
     }
   } finally {
-    reader.releaseLock?.();
+    try { reader.releaseLock?.(); } catch {}
   }
 
   const bytes = new Uint8Array(total);
@@ -145,38 +146,44 @@ async function readBoundedJson(response) {
   const streamed = await readStreamBytes(response);
   if (streamed) {
     if (streamed.byteLength === 0) return {};
-    const text = new TextDecoder('utf-8', { fatal: true }).decode(streamed);
-    return JSON.parse(text);
+    try {
+      const text = new TextDecoder('utf-8', { fatal: true }).decode(streamed);
+      return JSON.parse(text);
+    } catch {
+      throw policyError('PROVIDER_RESPONSE_INVALID_JSON', 'Provider reconciliation response is not valid UTF-8 JSON', response.status);
+    }
   }
 
   if (typeof response.json !== 'function') {
-    throw policyError('PROVIDER_RESPONSE_INVALID', 'Provider reconciliation response cannot be decoded as JSON');
+    throw policyError('PROVIDER_RESPONSE_INVALID', 'Provider reconciliation response cannot be decoded as JSON', response.status);
   }
-  const payload = await response.json();
+
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    throw policyError('PROVIDER_RESPONSE_INVALID_JSON', 'Provider reconciliation response is not valid JSON', response.status);
+  }
+
   let serialized;
   try {
     serialized = JSON.stringify(payload);
   } catch {
-    throw policyError('PROVIDER_RESPONSE_INVALID_JSON', 'Provider reconciliation response JSON cannot be serialized');
+    throw policyError('PROVIDER_RESPONSE_INVALID_JSON', 'Provider reconciliation response JSON cannot be serialized', response.status);
   }
   if (Buffer.byteLength(serialized || '', 'utf8') > MAX_PROVIDER_RESPONSE_BYTES) {
-    throw policyError('PROVIDER_RESPONSE_TOO_LARGE', `Provider reconciliation response exceeds ${MAX_PROVIDER_RESPONSE_BYTES} bytes`);
+    throw policyError('PROVIDER_RESPONSE_TOO_LARGE', `Provider reconciliation response exceeds ${MAX_PROVIDER_RESPONSE_BYTES} bytes`, response.status);
   }
   return payload;
 }
 
-function guardResponse(response, route) {
+async function guardResponse(response, route) {
   assertResponseMetadata(response, route);
-  let consumed = false;
+  const payload = await readBoundedJson(response);
   return new Proxy(response, {
     get(target, property) {
-      if (property === 'json') {
-        return async () => {
-          if (consumed) throw policyError('PROVIDER_RESPONSE_CONSUMED', 'Provider reconciliation response body has already been consumed');
-          consumed = true;
-          return readBoundedJson(target);
-        };
-      }
+      if (property === 'json') return async () => payload;
+      if (property === 'body' || property === 'bodyUsed') return property === 'body' ? null : true;
       return Reflect.get(target, property, target);
     },
   });
