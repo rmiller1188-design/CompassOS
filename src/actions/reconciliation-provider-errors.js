@@ -90,7 +90,8 @@ export function normalizeReconciliationProviderLookupError(error) {
         ? 'PROVIDER_TRANSIENT'
         : 'PROVIDER_REQUEST_REJECTED';
   normalized.status = status;
-  normalized.retryAfterMs = normalizedRetryAfter(error?.retryAfterMs);
+  const providerRetryAfter = normalizedRetryAfter(error?.retryAfterMs);
+  normalized.retryAfterMs = providerRetryAfter ?? ([408, 425].includes(status) ? 1 : null);
   normalized.providerCode = safeProviderCode(error?.providerCode ?? code);
   return normalized;
 }
