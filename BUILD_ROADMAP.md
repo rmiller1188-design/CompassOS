@@ -170,7 +170,7 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Enforce a short-lived capability TTL before provider code can receive a token
 - [x] Keep callback failures and credential-escape attempts single-use and non-replayable
 - [x] Require single-use capability metadata at telemetry trust boundaries
-- [x] Implementation candidate passed GitHub Actions `Validate production core` run 410 with 230/230 tests; final documentation/status head must remain green
+- [x] Exact final head passed GitHub Actions `Validate production core` run 416 with 230/230 tests
 - [ ] Validate expiry/replay behavior with live Google/Microsoft adapters and deployed worker instrumentation
 
 ### P7R — Purpose-bound reconciliation provider capabilities — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
@@ -179,7 +179,7 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Keep purpose subject metadata non-enumerable and out of provider-session JSON serialization
 - [x] Fail closed on purpose, subject, provider, or account binding drift
 - [x] Include purpose-bound session module in `npm run validate` with deterministic coverage
-- [x] Implementation candidate passed GitHub Actions `Validate production core` run 424 with 234/234 tests
+- [x] Exact final head passed GitHub Actions `Validate production core` run 430 with 234/234 tests
 - [ ] Validate live provider adapter consumption against the exact purpose/action binding
 
 ### P7S — Purpose-bound reconciliation provider adapters — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
@@ -188,8 +188,18 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Keep raw access tokens inside the single-use capability callback and out of reconciliation outcomes/evidence
 - [x] Reject purpose/subject/account drift and capability replay before an additional provider request can execute
 - [x] Include purpose-bound provider adapter module in `npm run validate` with deterministic mail/calendar coverage
-- [x] Implementation candidate passed GitHub Actions `Validate production core` run 435 with 240/240 tests
+- [x] Exact final head passed GitHub Actions `Validate production core` run 441 with 240/240 tests
 - [ ] Validate live Google/Microsoft OAuth → purpose-bound provider lookup consumption and fault injection
+
+### P7T — Reconciliation provider egress confinement — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Constrain Gmail, Google Calendar, Microsoft mail, and Microsoft Calendar reconciliation to exact HTTPS provider origins and supported API path surfaces
+- [x] Enforce GET-only, bodyless reconciliation requests and reject URL credentials/fragments before network execution
+- [x] Disable automatic redirects and ambient browser credentials at the guarded fetch boundary
+- [x] Require bearer authorization and reject unsupported provider/kind egress profiles fail-closed
+- [x] Preserve the existing P7S provider-adapter contract while composing the egress guard around every purpose-bound reconciliation request
+- [x] Add deterministic origin lookalike, path, method, body, redirect-policy, credential, URL-shape, and route-profile coverage
+- [x] Source candidate passed GitHub Actions `Validate production core` run 448; final documentation/roadmap head must remain green
+- [ ] Validate live provider redirects, DNS/TLS/proxy behavior, and constrained OAuth → reconciliation execution
 
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
