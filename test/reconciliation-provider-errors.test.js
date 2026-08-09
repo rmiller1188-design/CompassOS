@@ -6,6 +6,7 @@ import { createPurposeBoundProviderSession } from '../src/actions/purpose-bound-
 import { createPurposeBoundProviderReconciliationLookup } from '../src/actions/purpose-bound-reconciliation-adapters.js';
 import {
   classifyReconciliationProviderError,
+  createReconciliationProviderError,
   getReconciliationProviderErrorPolicy,
   normalizeReconciliationProviderLookupError,
   parseProviderRetryAfter,
@@ -46,6 +47,32 @@ test('Retry-After accepts delta seconds and HTTP dates but remains bounded', () 
   assert.equal(parseProviderRetryAfter('Sun, 09 Aug 2026 17:00:30 GMT', { now }), 30_000);
   assert.equal(parseProviderRetryAfter('999999', { now }), getReconciliationProviderErrorPolicy().maxRetryAfterMs);
   assert.equal(parseProviderRetryAfter('not-a-date', { now }), null);
+});
+
+test('HTTP-date Retry-After uses a valid provider Date header as its clock reference', () => {
+  const providerResponse = response({
+    status: 429,
+    headers: {
+      date: 'Wed, 31 Dec 2099 23:59:00 GMT',
+      'retry-after': 'Wed, 31 Dec 2099 23:59:30 GMT',
+    },
+    json: {},
+  });
+  const error = createReconciliationProviderError(providerResponse, {}, { now: new Date('2026-08-09T17:00:00.000Z') });
+  assert.equal(error.retryAfterMs, 30_000);
+});
+
+test('malformed provider Date falls back to the trusted local reference time', () => {
+  const providerResponse = response({
+    status: 503,
+    headers: {
+      date: 'not-a-provider-date',
+      'retry-after': 'Sun, 09 Aug 2026 17:00:45 GMT',
+    },
+    json: {},
+  });
+  const error = createReconciliationProviderError(providerResponse, {}, { now: new Date('2026-08-09T17:00:00.000Z') });
+  assert.equal(error.retryAfterMs, 45_000);
 });
 
 test('purpose-bound 429 provider failures are sanitized and remain retryable', async () => {
@@ -91,6 +118,27 @@ test('HTTP-date Retry-After survives the canonical Google reconciliation adapter
       resolutionCode: 'PROVIDER_LOOKUP_TRANSIENT',
       retryAfterMs: getReconciliationProviderErrorPolicy().maxRetryAfterMs,
     });
+    return true;
+  });
+});
+
+test('provider Date neutralizes local clock skew in the canonical Google reconciliation adapter', async () => {
+  const lookup = createPurposeBoundProviderReconciliationLookup({
+    googleFetch: async () => response({
+      status: 429,
+      headers: {
+        date: 'Wed, 31 Dec 2099 23:59:00 GMT',
+        'retry-after': 'Wed, 31 Dec 2099 23:59:20 GMT',
+        'content-type': 'application/json',
+      },
+      json: { error: { code: 'rateLimitExceeded', message: 'provider detail' } },
+    }),
+    microsoftFetch: async () => { throw new Error('unused'); },
+  });
+
+  await assert.rejects(() => lookup(input('google')), (error) => {
+    assert.equal(error.code, 'PROVIDER_RATE_LIMITED');
+    assert.equal(error.retryAfterMs, 20_000);
     return true;
   });
 });

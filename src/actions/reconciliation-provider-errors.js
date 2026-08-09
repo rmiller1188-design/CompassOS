@@ -19,6 +19,15 @@ function normalizedRetryAfter(value) {
   return Number.isFinite(value) && value >= 0 ? Math.min(MAX_RETRY_AFTER_MS, Math.ceil(value)) : null;
 }
 
+function retryAfterReferenceTime(response, fallbackNow) {
+  const providerDate = response?.headers?.get?.('date');
+  if (providerDate) {
+    const parsed = new Date(String(providerDate));
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return fallbackNow;
+}
+
 export function parseProviderRetryAfter(value, { now = new Date(), maxMs = MAX_RETRY_AFTER_MS } = {}) {
   if (value == null || value === '') return null;
   if (!Number.isFinite(maxMs) || maxMs <= 0) throw new TypeError('Maximum Retry-After must be positive');
@@ -41,7 +50,9 @@ export function parseProviderRetryAfter(value, { now = new Date(), maxMs = MAX_R
 export function createReconciliationProviderError(response, payload = {}, { now = new Date() } = {}) {
   const status = finiteStatus(response?.status);
   const providerCode = safeProviderCode(payload?.error?.code ?? payload?.error ?? payload?.code);
-  const retryAfterMs = parseProviderRetryAfter(response?.headers?.get?.('retry-after'), { now });
+  const retryAfterMs = parseProviderRetryAfter(response?.headers?.get?.('retry-after'), {
+    now: retryAfterReferenceTime(response, now),
+  });
 
   let code = 'PROVIDER_REQUEST_REJECTED';
   let message = status ? `Provider reconciliation request failed with HTTP ${status}` : 'Provider reconciliation request failed';
