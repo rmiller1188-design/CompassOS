@@ -5,6 +5,7 @@ import {
   createMicrosoftCalendarReconciliationLookup,
 } from './provider-reconciliation.js';
 import { assertPurposeBoundProviderSession } from './purpose-bound-provider-session.js';
+import { createReconciliationEgressFetch } from './reconciliation-egress-policy.js';
 
 function requireString(value, label) {
   if (typeof value !== 'string' || !value.trim()) throw new TypeError(`${label} is required`);
@@ -28,6 +29,7 @@ function createCapabilityLookup({ provider, kind, fetchImpl }) {
   const factory = provider === 'google'
     ? (kind === 'calendar' ? createGoogleCalendarReconciliationLookup : createGmailReconciliationLookup)
     : (kind === 'calendar' ? createMicrosoftCalendarReconciliationLookup : createMicrosoftReconciliationLookup);
+  const guardedFetch = createReconciliationEgressFetch({ provider, kind, fetchImpl });
 
   return async function capabilityLookup({ account, reconciliation, action = null, providerSession }) {
     assertLookupContext({ account, reconciliation, providerSession });
@@ -35,7 +37,7 @@ function createCapabilityLookup({ provider, kind, fetchImpl }) {
 
     return providerSession.withAccessToken(async (accessToken) => {
       const lookup = factory({
-        fetchImpl,
+        fetchImpl: guardedFetch,
         tokenResolver: async (resolvedAccount) => {
           if (resolvedAccount?.id !== account.id || resolvedAccount?.provider !== account.provider) {
             throw new Error('Provider lookup attempted credential use for a different account');
