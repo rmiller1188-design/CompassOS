@@ -25,7 +25,7 @@ test('Gmail reconciliation egress allows only the canonical sent-message lookup 
   assert.equal(request.init.redirect, 'error');
   assert.equal(request.init.credentials, 'omit');
   assert.equal(request.init.referrerPolicy, 'no-referrer');
-  assert.equal(request.init.headers.get('authorization'), 'Bearer provider-secret');
+  assert.equal(request.init.headers.authorization, 'Bearer provider-secret');
 });
 
 test('Google Calendar reconciliation allows canonical collection and event paths', async () => {
