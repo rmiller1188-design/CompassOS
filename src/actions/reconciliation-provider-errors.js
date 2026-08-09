@@ -1,6 +1,7 @@
 const MAX_RETRY_AFTER_MS = 15 * 60_000;
 const TRANSIENT_STATUSES = new Set([408, 425, 429]);
 const NETWORK_CODES = new Set(['ETIMEDOUT', 'ECONNRESET', 'EAI_AGAIN', 'ENETUNREACH', 'ECONNREFUSED']);
+const TRUSTED_BOUNDARY_PREFIXES = ['PROVIDER_RESPONSE_', 'PROVIDER_EGRESS_'];
 
 function finiteStatus(value) {
   const status = Number(value || 0);
@@ -12,6 +13,10 @@ function safeProviderCode(value) {
   const code = String(value).trim();
   if (!code) return null;
   return /^[A-Za-z0-9_.:-]{1,128}$/.test(code) ? code : null;
+}
+
+function normalizedRetryAfter(value) {
+  return Number.isFinite(value) && value >= 0 ? Math.min(MAX_RETRY_AFTER_MS, Math.ceil(value)) : null;
 }
 
 export function parseProviderRetryAfter(value, { now = new Date(), maxMs = MAX_RETRY_AFTER_MS } = {}) {
@@ -60,12 +65,40 @@ export function createReconciliationProviderError(response, payload = {}, { now 
   return error;
 }
 
+export function normalizeReconciliationProviderLookupError(error) {
+  const code = String(error?.code || '');
+  if (TRUSTED_BOUNDARY_PREFIXES.some((prefix) => code.startsWith(prefix)) || NETWORK_CODES.has(code)) return error;
+
+  const status = finiteStatus(error?.status ?? error?.statusCode);
+  if (!status) return error;
+
+  const normalized = new Error(
+    status === 401 || status === 403
+      ? 'Provider reconciliation authorization is no longer valid'
+      : status === 429
+        ? 'Provider reconciliation request was rate limited'
+        : (TRANSIENT_STATUSES.has(status) || status >= 500)
+          ? 'Provider reconciliation request failed transiently'
+          : `Provider reconciliation request failed with HTTP ${status}`,
+  );
+  normalized.name = 'ReconciliationProviderError';
+  normalized.code = status === 401 || status === 403
+    ? 'PROVIDER_AUTH_REQUIRED'
+    : status === 429
+      ? 'PROVIDER_RATE_LIMITED'
+      : (TRANSIENT_STATUSES.has(status) || status >= 500)
+        ? 'PROVIDER_TRANSIENT'
+        : 'PROVIDER_REQUEST_REJECTED';
+  normalized.status = status;
+  normalized.retryAfterMs = normalizedRetryAfter(error?.retryAfterMs);
+  normalized.providerCode = safeProviderCode(error?.providerCode ?? code);
+  return normalized;
+}
+
 export function classifyReconciliationProviderError(error) {
   const status = finiteStatus(error?.status ?? error?.statusCode);
   const code = String(error?.code || '');
-  const retryAfterMs = Number.isFinite(error?.retryAfterMs) && error.retryAfterMs >= 0
-    ? Math.min(MAX_RETRY_AFTER_MS, Math.ceil(error.retryAfterMs))
-    : null;
+  const retryAfterMs = normalizedRetryAfter(error?.retryAfterMs);
 
   if (code === 'PROVIDER_AUTH_REQUIRED' || status === 401 || status === 403) {
     return Object.freeze({ disposition: 'manual_review', resolutionCode: 'PROVIDER_RECONNECT_REQUIRED', retryAfterMs: null });
