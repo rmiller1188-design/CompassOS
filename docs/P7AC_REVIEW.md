@@ -1,6 +1,6 @@
 # P7AC Review — In-flight sync lease guard and provider cancellation
 
-Status: IMPLEMENTATION CANDIDATE — exact-head validation required before reviewable designation.
+Status: REVIEWABLE CORE / LIVE VALIDATION BLOCKED.
 
 ## Purpose
 P7AB renewed account-scoped sync leases before each resource and after each provider page fetch. A provider read could still remain in flight longer than the minimum lease duration, creating a window where ownership might expire before the worker observed loss. P7AC closes that gap for the production read-side sync path.
@@ -21,8 +21,8 @@ P7AB renewed account-scoped sync leases before each resource and after each prov
 - Lease failures retain retryable sync-control semantics and do not expose backend diagnostics through coordinator result envelopes.
 - No unsupported iMessage access and no fake provider/database evidence.
 
-## Validation gate
-The milestone is reviewable only after the exact final source/documentation head passes GitHub Actions `Validate production core`, including production-core syntax checks and the complete deterministic Node test suite.
+## Validation
+The implementation/source candidate passed GitHub Actions `Validate production core` run 564 under Node 22.23.1 with 297/297 deterministic tests passing and zero failures. The final documentation-status head is required to pass the same validation gate before P7AC is reported externally as reviewable.
 
 ## Live validation blockers
 - Real Google/Microsoft abort/cancellation behavior and connection teardown.
