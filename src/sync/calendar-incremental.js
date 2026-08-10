@@ -21,7 +21,7 @@ export async function runIncrementalCalendarSync({ account, adapter, store, maxP
         ...(heartbeatIntervalMs == null ? {} : { heartbeatIntervalMs }),
         operation: ({ signal }) => adapter.fetchCalendarPage({ account, cursor: requestCursor, mode, signal }),
       });
-      if (heartbeatLease) await heartbeatLease();
+      const pageLease = heartbeatLease ? await heartbeatLease() : null;
       if (!page || !Array.isArray(page.items)) throw new SyncInvariantError("Provider page must include items");
       const key = page.requestCursor ?? requestCursor ?? "bootstrap";
       if (seen.has(key)) throw new SyncInvariantError(`Cursor cycle detected at ${key}`);
@@ -34,7 +34,7 @@ export async function runIncrementalCalendarSync({ account, adapter, store, maxP
       pages += 1;
       if (!page.nextCursor) {
         const checkpoint = page.checkpoint || requestCursor || cursor;
-        if (checkpoint) await store.saveCursor(account.id, "calendar", checkpoint, now().toISOString());
+        if (checkpoint) await store.saveCursor(account.id, "calendar", checkpoint, now().toISOString(), pageLease);
         await store.recordSync(account.id, { resource: "calendar", status: "succeeded", mode, pages, written });
         return { status: "succeeded", mode, pages, written, cursor: checkpoint || null };
       }

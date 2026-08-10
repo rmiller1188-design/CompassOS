@@ -8,9 +8,41 @@ function assertResult(result, operation) {
   return result?.data;
 }
 
+function createSyncControlError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  error.retryable = true;
+  error.retryAfterMs = 5_000;
+  return error;
+}
+
 function resourceName(provider, resource) {
-  if (resource !== "mail") return resource;
-  return provider === "google" ? "gmail_history" : "graph_mail_delta";
+  if (resource === "mail") return provider === "google" ? "gmail_history" : "graph_mail_delta";
+  if (resource === "calendar") return provider === "google" ? "google_calendar_sync" : "graph_calendar_delta";
+  return resource;
+}
+
+function assertLeaseContext(lease, account) {
+  if (!lease?.accountId || !lease?.provider || !lease?.workerId || !lease?.leaseToken) {
+    throw createSyncControlError("SYNC_CURSOR_FENCE_INVALID", "Complete account sync lease is required for fenced cursor persistence");
+  }
+  if (lease.accountId !== account.id || lease.provider !== account.provider) {
+    throw createSyncControlError("SYNC_CURSOR_FENCE_INVALID", "Account sync lease does not match cursor scope");
+  }
+  return lease;
+}
+
+function assertFencedCursorResult(result) {
+  if (result?.error) {
+    throw createSyncControlError("SYNC_CURSOR_FENCE_BACKEND", "Lease-fenced cursor persistence failed");
+  }
+  const data = result?.data;
+  const value = Array.isArray(data) ? data[0] : data;
+  const saved = value === true || value?.saved === true;
+  if (!saved) {
+    throw createSyncControlError("SYNC_CURSOR_FENCE_LOST", "Account sync lease no longer authorizes cursor advancement");
+  }
+  return true;
 }
 
 function messageRow(userId, account, message) {
@@ -90,8 +122,26 @@ export function createSupabaseMailSyncStore({ client, userId, account, now = () 
       return assertResult(result, "get cursor") || null;
     },
 
-    async saveCursor(accountId, resource, cursor, watermark) {
+    async saveCursor(accountId, resource, cursor, watermark, lease = null) {
       assertAccount(accountId);
+      if (lease != null) {
+        assertLeaseContext(lease, account);
+        if (typeof client.rpc !== "function") {
+          throw createSyncControlError("SYNC_CURSOR_FENCE_BACKEND", "Lease-fenced cursor persistence is unavailable");
+        }
+        const result = await client.rpc("save_sync_cursor_with_account_lease", {
+          p_account_id: account.id,
+          p_provider: account.provider,
+          p_worker_id: lease.workerId,
+          p_lease_token: lease.leaseToken,
+          p_resource: resourceName(account.provider, resource),
+          p_cursor: cursor,
+          p_watermark: watermark,
+        });
+        assertFencedCursorResult(result);
+        return;
+      }
+
       const result = await client.from("sync_cursors").upsert({
         account_id: account.id,
         resource: resourceName(account.provider, resource),

@@ -37,7 +37,7 @@ export async function runIncrementalMailSync({ account, adapter, store, maxPages
         ...(heartbeatIntervalMs == null ? {} : { heartbeatIntervalMs }),
         operation: ({ signal }) => adapter.fetchMailPage({ account, cursor: nextCursor, mode, signal }),
       });
-      if (heartbeatLease) await heartbeatLease();
+      const pageLease = heartbeatLease ? await heartbeatLease() : null;
       assertPage(page);
       const pageKey = page.requestCursor ?? nextCursor ?? "bootstrap";
       if (seen.has(pageKey)) throw new SyncInvariantError(`Cursor cycle detected at ${pageKey}`);
@@ -52,7 +52,7 @@ export async function runIncrementalMailSync({ account, adapter, store, maxPages
       pages += 1;
       if (!page.nextCursor) {
         const checkpoint = page.checkpoint || nextCursor || cursor;
-        if (checkpoint) await store.saveCursor(account.id, "mail", checkpoint, now().toISOString());
+        if (checkpoint) await store.saveCursor(account.id, "mail", checkpoint, now().toISOString(), pageLease);
         await store.recordSync(account.id, { resource: "mail", status: "succeeded", mode, pages, written });
         return { status: "succeeded", mode, pages, written, cursor: checkpoint || null };
       }
