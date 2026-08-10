@@ -186,7 +186,7 @@ CompassOS is a production-first personal communications command center spanning 
 - [x] Bump package version to 0.49.0
 - [ ] Validate deployed retry-worker execution, owner-visible dead-letter behavior, and live Supabase persistence/RLS
 
-### P7AG — Retry worker lease-token fencing and expiry recovery — CANDIDATE / LIVE VALIDATION BLOCKED
+### P7AG — Retry worker lease-token fencing and expiry recovery — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Rotate a per-claim retry lease token and require exact job/worker/token/unexpired ownership for terminal mutation
 - [x] Reclaim expired `leased` retry jobs with `FOR UPDATE SKIP LOCKED` instead of stranding them after worker failure
 - [x] Atomically complete, reschedule, or dead-letter through a service-role-only fenced finalization RPC
@@ -195,7 +195,7 @@ CompassOS is a production-first personal communications command center spanning 
 - [x] Require failed attempts to advance exactly once and sanitize retry-backend control errors
 - [x] Add deterministic lease-loss, expiry-reclaim contract, malformed-claim, backend-sanitization, and atomic-finalization coverage
 - [x] Bump package version to 0.50.0
-- [ ] Pass exact final head through the repository production-core validation gate
+- [x] Pass source implementation through the repository production-core validation gate before documentation promotion
 - [ ] Apply migration and validate live multi-worker reclaim/fencing/crash recovery with Supabase
 
 ## Cross-cutting live validation blockers
