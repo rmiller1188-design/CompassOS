@@ -1,6 +1,7 @@
 import { createNormalizedContact } from "../domain/contact.js";
 import { classifySyncError, SyncInvariantError } from "./mail-incremental.js";
 import { runWithLeaseHeartbeat } from "./lease-guarded-operation.js";
+import { createSafeSyncFailureRecord } from "./sync-failure-safety.js";
 
 export async function runIncrementalContactsSync({ account, adapter, store, maxPages = 100, now = () => new Date(), heartbeatLease = null, heartbeatIntervalMs = undefined }) {
   if (!account?.id || !account?.provider) throw new TypeError("Connected account is required");
@@ -41,8 +42,9 @@ export async function runIncrementalContactsSync({ account, adapter, store, maxP
     }
     throw new SyncInvariantError(`Page limit ${maxPages} exceeded`);
   } catch (error) {
-    const failure = error instanceof SyncInvariantError ? { retryable: false, reason: "sync_invariant" } : classifySyncError(error);
-    await store.recordSync(account.id, { resource: "contacts", status: "failed", mode, pages, written, ...failure, message: String(error.message || error) });
+    const classified = error instanceof SyncInvariantError ? { retryable: false, reason: "sync_invariant" } : classifySyncError(error);
+    const failure = createSafeSyncFailureRecord(classified);
+    await store.recordSync(account.id, { resource: "contacts", status: "failed", mode, pages, written, ...failure });
     if (failure.reason === "reauthorization_required" && store.markReauthorizationRequired) await store.markReauthorizationRequired(account.id);
     throw error;
   }
