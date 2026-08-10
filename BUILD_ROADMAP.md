@@ -177,6 +177,15 @@ CompassOS is a production-first personal communications command center spanning 
 - [x] Bump package version to 0.48.0 and include the boundary in production-core validation
 - [ ] Validate live Google/Microsoft error payloads, configured Supabase persistence/RLS visibility, deployed logging/APM, and retry-worker diagnostics
 
+### P7AF — Retry worker diagnostic persistence safety — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Stop retry executor exception text from crossing into `sync_retry_jobs.last_error` or `sync_dead_letters.last_error`
+- [x] Re-canonicalize retry reasons through the same allowlisted sync-failure boundary before reschedule or dead-letter persistence
+- [x] Fail unknown stored retry reasons closed to `sync_failure` with stable application-owned text
+- [x] Keep exponential retry scheduling bounded by the existing 1-second to 15-minute safety envelope
+- [x] Add deterministic reschedule, dead-letter, secret/email/URL leakage, and unknown-reason tests
+- [x] Bump package version to 0.49.0
+- [ ] Validate deployed retry-worker execution, owner-visible dead-letter behavior, and live Supabase persistence/RLS
+
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, reconnect, refresh/rotation, and provider-side reconciliation markers
