@@ -1,7 +1,8 @@
 import { createNormalizedContact } from "../domain/contact.js";
 import { classifySyncError, SyncInvariantError } from "./mail-incremental.js";
+import { runWithLeaseHeartbeat } from "./lease-guarded-operation.js";
 
-export async function runIncrementalContactsSync({ account, adapter, store, maxPages = 100, now = () => new Date(), heartbeatLease = null }) {
+export async function runIncrementalContactsSync({ account, adapter, store, maxPages = 100, now = () => new Date(), heartbeatLease = null, heartbeatIntervalMs = undefined }) {
   if (!account?.id || !account?.provider) throw new TypeError("Connected account is required");
   if (!adapter || !store) throw new TypeError("Adapter and store are required");
   if (heartbeatLease != null && typeof heartbeatLease !== "function") throw new TypeError("heartbeatLease must be a function");
@@ -14,7 +15,11 @@ export async function runIncrementalContactsSync({ account, adapter, store, maxP
 
   try {
     while (pages < maxPages) {
-      const page = await adapter.fetchContactsPage({ account, cursor: requestCursor, mode });
+      const page = await runWithLeaseHeartbeat({
+        heartbeatLease,
+        ...(heartbeatIntervalMs == null ? {} : { heartbeatIntervalMs }),
+        operation: ({ signal }) => adapter.fetchContactsPage({ account, cursor: requestCursor, mode, signal }),
+      });
       if (heartbeatLease) await heartbeatLease();
       if (!page || !Array.isArray(page.items)) throw new SyncInvariantError("Provider page must include items");
       const key = page.requestCursor ?? requestCursor ?? "bootstrap";

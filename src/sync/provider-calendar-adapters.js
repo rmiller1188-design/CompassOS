@@ -15,8 +15,8 @@ function providerError(response, body) {
   if (retryAfter) error.retryAfterMs = Number(retryAfter) * 1000;
   return error;
 }
-async function requestJson(fetchFn, url, token, headers = {}) {
-  const response = await fetchFn(url, { headers: { authorization: `Bearer ${token}`, accept: "application/json", ...headers } });
+async function requestJson(fetchFn, url, token, headers = {}, { signal } = {}) {
+  const response = await fetchFn(url, { headers: { authorization: `Bearer ${token}`, accept: "application/json", ...headers }, signal });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw providerError(response, body);
   return body;
@@ -27,7 +27,7 @@ function graphDate(value) { return value?.dateTime ? new Date(`${value.dateTime}
 export function createGoogleCalendarAdapter({ fetchFn = fetch, getAccessToken }) {
   if (typeof getAccessToken !== "function") throw new TypeError("getAccessToken is required");
   return {
-    async fetchCalendarPage({ account, cursor, mode }) {
+    async fetchCalendarPage({ account, cursor, mode, signal }) {
       const token = await getAccessToken(account);
       const state = decode(cursor);
       const params = new URLSearchParams({ maxResults: "250", singleEvents: "true", showDeleted: "true" });
@@ -38,7 +38,7 @@ export function createGoogleCalendarAdapter({ fetchFn = fetch, getAccessToken })
       } else {
         params.set("timeMin", new Date(Date.now() - 30 * 86400000).toISOString());
       }
-      const body = await requestJson(fetchFn, `${GOOGLE_EVENTS}?${params}`, token);
+      const body = await requestJson(fetchFn, `${GOOGLE_EVENTS}?${params}`, token, {}, { signal });
       const nextCursor = body.nextPageToken ? encode({ syncToken: state?.syncToken || null, pageToken: body.nextPageToken }) : null;
       return { items: body.items || [], requestCursor: cursor, nextCursor, checkpoint: nextCursor ? null : encode({ syncToken: body.nextSyncToken || state?.syncToken }) };
     },
@@ -52,7 +52,7 @@ export function createGoogleCalendarAdapter({ fetchFn = fetch, getAccessToken })
 export function createMicrosoftCalendarAdapter({ fetchFn = fetch, getAccessToken, now = () => new Date() }) {
   if (typeof getAccessToken !== "function") throw new TypeError("getAccessToken is required");
   return {
-    async fetchCalendarPage({ account, cursor }) {
+    async fetchCalendarPage({ account, cursor, signal }) {
       const token = await getAccessToken(account);
       const state = decode(cursor);
       let url = state?.deltaUrl;
@@ -62,7 +62,7 @@ export function createMicrosoftCalendarAdapter({ fetchFn = fetch, getAccessToken
         const params = new URLSearchParams({ startDateTime: start, endDateTime: end, $select: "id,subject,start,end,organizer,attendees,location,isCancelled,seriesMasterId,lastModifiedDateTime", $top: "100" });
         url = `${GRAPH_DELTA}?${params}`;
       }
-      const body = await requestJson(fetchFn, url, token, { Prefer: 'outlook.timezone="UTC"' });
+      const body = await requestJson(fetchFn, url, token, { Prefer: 'outlook.timezone="UTC"' }, { signal });
       return { items: body.value || [], requestCursor: cursor, nextCursor: body["@odata.nextLink"] ? encode({ deltaUrl: body["@odata.nextLink"] }) : null, checkpoint: body["@odata.deltaLink"] ? encode({ deltaUrl: body["@odata.deltaLink"] }) : null };
     },
     normalizeEvent(account, item) {
