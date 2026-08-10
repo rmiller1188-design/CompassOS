@@ -2,7 +2,7 @@
 
 ## Disposition
 
-**CANDIDATE / LIVE VALIDATION BLOCKED.** P7AG becomes reviewable only after the exact final source/documentation head passes the repository `Validate production core` pull-request gate.
+**REVIEWABLE CORE / LIVE VALIDATION BLOCKED.** The source implementation passed the repository `Validate production core` pull-request gate before this documentation promotion. The exact final source/documentation head must also pass the same gate; the authoritative exact-head evidence is recorded on draft PR #58 without further branch mutation.
 
 ## Production problem closed
 
@@ -27,11 +27,11 @@ P7AG makes retry ownership generation-specific and recoverable.
 
 P7AG adds no OAuth scope, provider-write authority, browser credential access, outbound-action bypass, unsupported iMessage access, or fake production data. The claim and finalization RPCs remain service-role only. P7AF safe diagnostic canonicalization remains in force, and this increment does not alter explicit approval, policy, idempotency, reconciliation, audit, RLS, or user-controlled memory authority.
 
-## Deterministic validation target
+## Deterministic validation
 
-The exact final branch head must pass `npm run validate`, including production-core syntax checks and the complete deterministic Node test suite. Added coverage verifies exact lease-token finalization, safe reschedule/dead-letter payloads, stale-lease fencing, malformed-claim rejection before execution, backend diagnostic sanitization, expired-lease reclaim SQL, token rotation, row locking, exact attempt advancement, bounded database retry scheduling, and service-role-only function authority.
+Validation requires `npm run validate`, including production-core syntax checks and the complete deterministic Node test suite. Added coverage verifies exact lease-token finalization, safe reschedule/dead-letter payloads, stale-lease fencing, malformed-claim rejection before execution, backend diagnostic sanitization, expired-lease reclaim SQL, token rotation, row locking, exact attempt advancement, bounded database retry scheduling, and service-role-only function authority.
 
-The authoritative exact-head CI evidence is recorded on the draft P7AG pull request after validation completes.
+The authoritative exact-final-head CI run number, SHA, and conclusion are recorded on draft PR #58 after validation completes.
 
 ## Reviewer checklist
 
