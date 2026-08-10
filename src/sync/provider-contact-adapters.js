@@ -15,8 +15,8 @@ function providerError(response, body) {
   if (retryAfter) error.retryAfterMs = Number(retryAfter) * 1000;
   return error;
 }
-async function requestJson(fetchFn, url, token) {
-  const response = await fetchFn(url, { headers: { authorization: `Bearer ${token}`, accept: "application/json" } });
+async function requestJson(fetchFn, url, token, { signal } = {}) {
+  const response = await fetchFn(url, { headers: { authorization: `Bearer ${token}`, accept: "application/json" }, signal });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw providerError(response, body);
   return body;
@@ -30,7 +30,7 @@ function googleBirthday(person) {
 export function createGoogleContactsAdapter({ fetchFn = fetch, getAccessToken }) {
   if (typeof getAccessToken !== "function") throw new TypeError("getAccessToken is required");
   return {
-    async fetchContactsPage({ account, cursor, mode }) {
+    async fetchContactsPage({ account, cursor, mode, signal }) {
       const token = await getAccessToken(account);
       const state = decode(cursor);
       const params = new URLSearchParams({ personFields: "names,emailAddresses,phoneNumbers,organizations,birthdays,photos,metadata", pageSize: "1000", sortOrder: "LAST_MODIFIED_DESCENDING" });
@@ -41,7 +41,7 @@ export function createGoogleContactsAdapter({ fetchFn = fetch, getAccessToken })
       } else {
         params.set("requestSyncToken", "true");
       }
-      const body = await requestJson(fetchFn, `${GOOGLE_CONNECTIONS}?${params}`, token);
+      const body = await requestJson(fetchFn, `${GOOGLE_CONNECTIONS}?${params}`, token, { signal });
       const nextCursor = body.nextPageToken ? encode({ syncToken: state?.syncToken || null, pageToken: body.nextPageToken }) : null;
       return { items: body.connections || [], requestCursor: cursor, nextCursor, checkpoint: nextCursor ? null : encode({ syncToken: body.nextSyncToken || state?.syncToken }) };
     },
@@ -72,12 +72,12 @@ export function createGoogleContactsAdapter({ fetchFn = fetch, getAccessToken })
 export function createMicrosoftContactsAdapter({ fetchFn = fetch, getAccessToken }) {
   if (typeof getAccessToken !== "function") throw new TypeError("getAccessToken is required");
   return {
-    async fetchContactsPage({ account, cursor }) {
+    async fetchContactsPage({ account, cursor, signal }) {
       const token = await getAccessToken(account);
       const state = decode(cursor);
       const params = new URLSearchParams({ $select: "id,displayName,givenName,surname,emailAddresses,businessPhones,homePhones,mobilePhone,companyName,jobTitle,birthday,lastModifiedDateTime", $top: "100" });
       const url = state?.deltaUrl || `${GRAPH_CONTACTS_DELTA}?${params}`;
-      const body = await requestJson(fetchFn, url, token);
+      const body = await requestJson(fetchFn, url, token, { signal });
       return { items: body.value || [], requestCursor: cursor, nextCursor: body["@odata.nextLink"] ? encode({ deltaUrl: body["@odata.nextLink"] }) : null, checkpoint: body["@odata.deltaLink"] ? encode({ deltaUrl: body["@odata.deltaLink"] }) : null };
     },
     normalizeContact(account, item) {
