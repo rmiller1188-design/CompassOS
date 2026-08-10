@@ -1,3 +1,5 @@
+import { createSafeSyncFailureRecord } from "./sync-failure-safety.js";
+
 function assertResult(result, operation) {
   if (result?.error) {
     const error = new Error(`${operation}: ${result.error.message || "Supabase operation failed"}`);
@@ -171,6 +173,7 @@ export function createSupabaseMailSyncStore({ client, userId, account, now = () 
 
     async recordSync(accountId, run) {
       assertAccount(accountId);
+      const failure = run.status === "failed" ? createSafeSyncFailureRecord(run) : null;
       assertResult(await client.from("sync_runs").insert({
         user_id: userId,
         account_id: account.id,
@@ -179,21 +182,21 @@ export function createSupabaseMailSyncStore({ client, userId, account, now = () 
         mode: run.mode,
         pages: run.pages,
         written: run.written,
-        retryable: run.retryable ?? null,
-        reason: run.reason ?? null,
-        message: run.message ?? null,
+        retryable: failure?.retryable ?? null,
+        reason: failure?.reason ?? null,
+        message: failure?.message ?? null,
         finished_at: now().toISOString(),
       }), "record sync run");
 
-      if (run.status === "failed" && run.retryable) {
-        const delay = Math.max(1000, Number(run.retryAfterMs || 1000));
+      if (failure?.retryable) {
+        const delay = failure.retryAfterMs;
         assertResult(await client.from("sync_retry_jobs").insert({
           user_id: userId,
           account_id: account.id,
           resource: resourceName(account.provider, run.resource),
-          reason: run.reason || "provider_transient",
+          reason: failure.reason,
           available_at: new Date(now().getTime() + delay).toISOString(),
-          last_error: run.message ?? null,
+          last_error: failure.message,
         }), "queue retry");
       }
     },
