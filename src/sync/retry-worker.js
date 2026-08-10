@@ -1,3 +1,5 @@
+import { createSafeSyncFailureRecord } from "./sync-failure-safety.js";
+
 function assertResult(result, operation) {
   if (result?.error) {
     const error = new Error(`${operation}: ${result.error.message || "Supabase operation failed"}`);
@@ -11,6 +13,14 @@ function assertResult(result, operation) {
 export function computeBackoffMs(attempt, { baseMs = 1000, maxMs = 15 * 60 * 1000 } = {}) {
   const safeAttempt = Math.max(1, Number(attempt || 1));
   return Math.min(maxMs, baseMs * (2 ** (safeAttempt - 1)));
+}
+
+function createSafeRetryFailure(job, attempts) {
+  return createSafeSyncFailureRecord({
+    retryable: true,
+    reason: job?.reason,
+    retryAfterMs: computeBackoffMs(attempts),
+  });
 }
 
 export function createRetryWorker({ client, execute, workerId, now = () => new Date(), maxAttempts = 5, leaseSeconds = 120 }) {
@@ -34,29 +44,29 @@ export function createRetryWorker({ client, execute, workerId, now = () => new D
       .eq("lease_owner", workerId), "complete retry job");
   }
 
-  async function fail(job, error) {
+  async function fail(job) {
     const attempts = Number(job.attempts || 0) + 1;
-    const message = String(error?.message || error).slice(0, 2000);
+    const failure = createSafeRetryFailure(job, attempts);
     if (attempts >= maxAttempts) {
       assertResult(await client.from("sync_dead_letters").insert({
         user_id: job.user_id,
         account_id: job.account_id,
         resource: job.resource,
-        reason: job.reason,
+        reason: failure.reason,
         attempts,
-        last_error: message,
+        last_error: failure.message,
         source_retry_job_id: job.id,
       }), "insert dead letter");
       assertResult(await client.from("sync_retry_jobs")
-        .update({ status: "dead_lettered", attempts, last_error: message, completed_at: now().toISOString(), lease_owner: null, lease_expires_at: null })
+        .update({ status: "dead_lettered", attempts, reason: failure.reason, last_error: failure.message, completed_at: now().toISOString(), lease_owner: null, lease_expires_at: null })
         .eq("id", job.id)
         .eq("lease_owner", workerId), "dead-letter retry job");
       return "dead_lettered";
     }
 
-    const availableAt = new Date(now().getTime() + computeBackoffMs(attempts)).toISOString();
+    const availableAt = new Date(now().getTime() + failure.retryAfterMs).toISOString();
     assertResult(await client.from("sync_retry_jobs")
-      .update({ status: "pending", attempts, last_error: message, available_at: availableAt, lease_owner: null, lease_expires_at: null })
+      .update({ status: "pending", attempts, reason: failure.reason, last_error: failure.message, available_at: availableAt, lease_owner: null, lease_expires_at: null })
       .eq("id", job.id)
       .eq("lease_owner", workerId), "reschedule retry job");
     return "rescheduled";
@@ -71,8 +81,8 @@ export function createRetryWorker({ client, execute, workerId, now = () => new D
           await execute(job);
           await succeed(job);
           summary.succeeded += 1;
-        } catch (error) {
-          const outcome = await fail(job, error);
+        } catch {
+          const outcome = await fail(job);
           if (outcome === "dead_lettered") summary.deadLettered += 1;
           else summary.rescheduled += 1;
         }
