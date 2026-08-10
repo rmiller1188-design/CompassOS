@@ -20,7 +20,7 @@ export async function runIncrementalContactsSync({ account, adapter, store, maxP
         ...(heartbeatIntervalMs == null ? {} : { heartbeatIntervalMs }),
         operation: ({ signal }) => adapter.fetchContactsPage({ account, cursor: requestCursor, mode, signal }),
       });
-      if (heartbeatLease) await heartbeatLease();
+      const pageLease = heartbeatLease ? await heartbeatLease() : null;
       if (!page || !Array.isArray(page.items)) throw new SyncInvariantError("Provider page must include items");
       const key = page.requestCursor ?? requestCursor ?? "bootstrap";
       if (seen.has(key)) throw new SyncInvariantError(`Cursor cycle detected at ${key}`);
@@ -33,7 +33,7 @@ export async function runIncrementalContactsSync({ account, adapter, store, maxP
       pages += 1;
       if (!page.nextCursor) {
         const checkpoint = page.checkpoint || requestCursor;
-        if (checkpoint) await store.saveCursor(account.id, "contacts", checkpoint, now().toISOString());
+        if (checkpoint) await store.saveCursor(account.id, "contacts", checkpoint, now().toISOString(), pageLease);
         await store.recordSync(account.id, { resource: "contacts", status: "succeeded", mode, pages, written });
         return { status: "succeeded", mode, pages, written, cursor: checkpoint || null };
       }
