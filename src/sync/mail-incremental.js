@@ -1,5 +1,6 @@
 import { createNormalizedMessage } from "../domain/normalized.js";
 import { runWithLeaseHeartbeat } from "./lease-guarded-operation.js";
+import { createSafeSyncFailureRecord } from "./sync-failure-safety.js";
 
 export class SyncInvariantError extends Error {}
 
@@ -60,10 +61,11 @@ export async function runIncrementalMailSync({ account, adapter, store, maxPages
     }
     throw new SyncInvariantError(`Page limit ${maxPages} exceeded`);
   } catch (error) {
-    const failure = error instanceof SyncInvariantError
+    const classified = error instanceof SyncInvariantError
       ? { retryable: false, reason: "sync_invariant" }
       : classifySyncError(error);
-    await store.recordSync(account.id, { resource: "mail", status: "failed", mode, pages, written, ...failure, message: String(error.message || error) });
+    const failure = createSafeSyncFailureRecord(classified);
+    await store.recordSync(account.id, { resource: "mail", status: "failed", mode, pages, written, ...failure });
     if (failure.reason === "reauthorization_required" && store.markReauthorizationRequired) {
       await store.markReauthorizationRequired(account.id);
     }
