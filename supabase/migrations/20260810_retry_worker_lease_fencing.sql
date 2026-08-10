@@ -91,12 +91,14 @@ begin
     return true;
   end if;
 
-  if p_attempts is null or p_attempts < v_job.attempts or p_reason is null or p_last_error is null then
+  if p_attempts is null or p_attempts <> v_job.attempts + 1 or p_reason is null or p_last_error is null then
     return false;
   end if;
 
   if p_outcome = 'pending' then
-    if p_available_at is null then
+    if p_available_at is null
+      or p_available_at < now() + interval '1 second'
+      or p_available_at > now() + interval '15 minutes' then
       return false;
     end if;
     update public.sync_retry_jobs
