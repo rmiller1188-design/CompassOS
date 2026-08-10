@@ -13,12 +13,14 @@ export function classifySyncError(error) {
   if (status === 401 || code === "invalid_grant") return { retryable: false, reason: "reauthorization_required" };
   if (status === 429) return { retryable: true, reason: "rate_limited", retryAfterMs: Number(error?.retryAfterMs || 60000) };
   if (status >= 500 || code === "etimedout" || code === "econnreset") return { retryable: true, reason: "provider_transient", retryAfterMs: Number(error?.retryAfterMs || 1000) };
+  if (error?.retryable === true) return { retryable: true, reason: "sync_control_transient", retryAfterMs: Number(error?.retryAfterMs || 1000) };
   return { retryable: false, reason: "provider_rejected" };
 }
 
-export async function runIncrementalMailSync({ account, adapter, store, maxPages = 100, now = () => new Date() }) {
+export async function runIncrementalMailSync({ account, adapter, store, maxPages = 100, now = () => new Date(), heartbeatLease = null }) {
   if (!account?.id || !account?.provider) throw new TypeError("Connected account is required");
   if (!adapter || !store) throw new TypeError("Adapter and store are required");
+  if (heartbeatLease != null && typeof heartbeatLease !== "function") throw new TypeError("heartbeatLease must be a function");
   const existing = await store.getCursor(account.id, "mail");
   const mode = existing?.cursor ? "incremental" : "bootstrap";
   let cursor = existing?.cursor || null;
@@ -30,6 +32,7 @@ export async function runIncrementalMailSync({ account, adapter, store, maxPages
   try {
     while (pages < maxPages) {
       const page = await adapter.fetchMailPage({ account, cursor: nextCursor, mode });
+      if (heartbeatLease) await heartbeatLease();
       assertPage(page);
       const pageKey = page.requestCursor ?? nextCursor ?? "bootstrap";
       if (seen.has(pageKey)) throw new SyncInvariantError(`Cursor cycle detected at ${pageKey}`);

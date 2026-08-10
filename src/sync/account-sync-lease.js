@@ -18,13 +18,17 @@ function assertAccount(account) {
   if (!account?.id || !account?.provider) throw new TypeError('Connected account id and provider are required');
 }
 
+function createLeaseControlError(code, message, { retryAfterMs = 5_000 } = {}) {
+  const error = new Error(message);
+  error.code = code;
+  error.retryable = true;
+  error.retryAfterMs = retryAfterMs;
+  return error;
+}
+
 function assertRpcResult(result, operation) {
   if (result?.error) {
-    const error = new Error(`Account sync lease ${operation} failed`);
-    error.code = 'SYNC_LEASE_BACKEND';
-    error.retryable = true;
-    error.retryAfterMs = 5_000;
-    throw error;
+    throw createLeaseControlError('SYNC_LEASE_BACKEND', `Account sync lease ${operation} failed`);
   }
   return result?.data;
 }
@@ -80,7 +84,11 @@ export function createSupabaseAccountSyncLeaseManager({ client, workerId, leaseD
     },
 
     async heartbeat(lease, account) {
-      assertAccountSyncLease(lease, account, { workerId: boundWorkerId, now: now() });
+      try {
+        assertAccountSyncLease(lease, account, { workerId: boundWorkerId, now: now() });
+      } catch {
+        throw createLeaseControlError('SYNC_LEASE_LOST', 'Account sync lease lost or expired');
+      }
       const data = assertRpcResult(await client.rpc('heartbeat_account_sync_lease', {
         p_account_id: account.id,
         p_worker_id: boundWorkerId,
@@ -88,8 +96,12 @@ export function createSupabaseAccountSyncLeaseManager({ client, workerId, leaseD
         p_lease_seconds: Math.ceil(durationMs / 1000),
       }), 'heartbeat');
       const refreshed = mapLease(firstRow(data));
-      if (!refreshed) throw new Error('Account sync lease lost or expired');
-      assertAccountSyncLease(refreshed, account, { workerId: boundWorkerId, now: now() });
+      if (!refreshed) throw createLeaseControlError('SYNC_LEASE_LOST', 'Account sync lease lost or expired');
+      try {
+        assertAccountSyncLease(refreshed, account, { workerId: boundWorkerId, now: now() });
+      } catch {
+        throw createLeaseControlError('SYNC_LEASE_LOST', 'Account sync lease lost or expired');
+      }
       return refreshed;
     },
 

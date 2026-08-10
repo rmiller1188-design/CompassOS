@@ -267,6 +267,16 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Include the lease module in `npm run validate` and bump package version to 0.44.0
 - [ ] Apply the migration and validate live service-role Supabase RLS/RPC behavior, multi-worker contention, heartbeat/expiry recovery, and cursor advancement
 
+### P7AB — Long-running sync lease heartbeat integration — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
+- [x] Require acquire/heartbeat/release lease semantics for leased multi-account sync composition
+- [x] Renew account ownership before each resource and propagate rotating lease tokens through release
+- [x] Renew after every provider page fetch before normalized records or cursor checkpoints can persist
+- [x] Convert lease backend/loss failures into sanitized retryable sync-control failures
+- [x] Stop remaining resources for only the affected account after lease ownership can no longer be proven
+- [x] Add deterministic rotating-token, refreshed-release, cursor non-advancement, lease-loss, and fail-closed composition coverage
+- [x] Bump package version to 0.45.0 and include the changed modules in the existing production-core validation chain
+- [ ] Validate live Supabase heartbeat rotation, long provider requests, scheduler crash/restart, multi-worker contention, and durable cursor progression
+
 ## Cross-cutting live validation blockers
 - [ ] Apply and verify all Supabase migrations and RLS/service-role boundaries
 - [ ] Validate real Google and Microsoft OAuth, sync, pagination, reconnect, refresh/rotation, and provider-side reconciliation markers

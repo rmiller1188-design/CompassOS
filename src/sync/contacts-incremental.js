@@ -1,9 +1,10 @@
 import { createNormalizedContact } from "../domain/contact.js";
 import { classifySyncError, SyncInvariantError } from "./mail-incremental.js";
 
-export async function runIncrementalContactsSync({ account, adapter, store, maxPages = 100, now = () => new Date() }) {
+export async function runIncrementalContactsSync({ account, adapter, store, maxPages = 100, now = () => new Date(), heartbeatLease = null }) {
   if (!account?.id || !account?.provider) throw new TypeError("Connected account is required");
   if (!adapter || !store) throw new TypeError("Adapter and store are required");
+  if (heartbeatLease != null && typeof heartbeatLease !== "function") throw new TypeError("heartbeatLease must be a function");
   const existing = await store.getCursor(account.id, "contacts");
   const mode = existing?.cursor ? "incremental" : "bootstrap";
   let requestCursor = existing?.cursor || null;
@@ -14,6 +15,7 @@ export async function runIncrementalContactsSync({ account, adapter, store, maxP
   try {
     while (pages < maxPages) {
       const page = await adapter.fetchContactsPage({ account, cursor: requestCursor, mode });
+      if (heartbeatLease) await heartbeatLease();
       if (!page || !Array.isArray(page.items)) throw new SyncInvariantError("Provider page must include items");
       const key = page.requestCursor ?? requestCursor ?? "bootstrap";
       if (seen.has(key)) throw new SyncInvariantError(`Cursor cycle detected at ${key}`);
