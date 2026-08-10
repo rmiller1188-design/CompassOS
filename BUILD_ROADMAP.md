@@ -277,7 +277,7 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Bump package version to 0.45.0 and include the changed modules in the existing production-core validation chain
 - [ ] Validate live Supabase heartbeat rotation, long provider requests, scheduler crash/restart, multi-worker contention, and durable cursor progression
 
-### P7AC — In-flight sync lease guard and provider cancellation — IMPLEMENTATION CANDIDATE / VALIDATION REQUIRED
+### P7AC — In-flight sync lease guard and provider cancellation — REVIEWABLE CORE / LIVE VALIDATION BLOCKED
 - [x] Heartbeat while mail, calendar, and contacts provider page reads are still in flight
 - [x] Abort the provider read with `AbortSignal` when lease ownership is lost or the heartbeat backend fails
 - [x] Propagate cancellation through Gmail, Microsoft mail, Google/Microsoft calendar, and Google/Microsoft contacts HTTP adapters
@@ -285,7 +285,7 @@ CompassOS is being built as a production-first personal communications command c
 - [x] Bound the default heartbeat cadence below the 5-second minimum account lease duration and reject unsafe intervals fail-closed
 - [x] Add deterministic abort, persistence-refusal, signal-propagation, and policy tests
 - [x] Bump package version to 0.46.0 and include the lease guard in `npm run validate`
-- [ ] Pass exact-head GitHub Actions validation and then mark reviewable
+- [x] Implementation/source candidate passed GitHub Actions `Validate production core` run 564 with 297/297 tests; final status head is gated by the same exact-head validation before external reviewable reporting
 - [ ] Validate live provider cancellation, Supabase heartbeat rotation, long-request behavior, multi-worker contention, and durable cursor progression
 
 ## Cross-cutting live validation blockers
