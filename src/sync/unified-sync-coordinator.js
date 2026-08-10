@@ -7,6 +7,7 @@ import { assertAccountSyncLease } from './account-sync-lease.js';
 
 const SUPPORTED_PROVIDERS = new Set(['google', 'microsoft']);
 const SUPPORTED_RESOURCES = Object.freeze(['mail', 'calendar', 'contacts']);
+const LEASE_CONTROL_CODES = new Set(['SYNC_LEASE_BACKEND', 'SYNC_LEASE_LOST']);
 
 function validateAccounts(accounts) {
   if (!Array.isArray(accounts)) throw new TypeError('Connected accounts must be an array');
@@ -50,6 +51,10 @@ function safeFailure(error) {
   });
 }
 
+function isLeaseControlFailure(error) {
+  return LEASE_CONTROL_CODES.has(String(error?.code || '').toUpperCase());
+}
+
 function createDefaultRunners() {
   return Object.freeze({ mail: runIncrementalMailSync, calendar: runIncrementalCalendarSync, contacts: runIncrementalContactsSync });
 }
@@ -84,6 +89,7 @@ export function createUnifiedSyncCoordinator({
 
       const accountResults = [];
       let blockedForReauthorization = false;
+      let blockedForLeaseLoss = false;
       let adapter;
       try {
         adapter = await resolveAdapter(account);
@@ -110,11 +116,12 @@ export function createUnifiedSyncCoordinator({
 
       let leaseManager = null;
       let accountLease = null;
+      let heartbeatLease = null;
       if (resolveLeaseManager) {
         try {
           leaseManager = await resolveLeaseManager(account);
-          if (!leaseManager || typeof leaseManager.acquire !== 'function' || typeof leaseManager.release !== 'function') {
-            throw new TypeError('Account sync lease manager requires acquire and release');
+          if (!leaseManager || typeof leaseManager.acquire !== 'function' || typeof leaseManager.heartbeat !== 'function' || typeof leaseManager.release !== 'function') {
+            throw new TypeError('Account sync lease manager requires acquire, heartbeat, and release');
           }
           accountLease = await leaseManager.acquire(account);
           if (!accountLease) {
@@ -122,6 +129,12 @@ export function createUnifiedSyncCoordinator({
             continue;
           }
           assertAccountSyncLease(accountLease, account, { now: now() });
+          heartbeatLease = async () => {
+            const refreshed = await leaseManager.heartbeat(accountLease, account);
+            assertAccountSyncLease(refreshed, account, { now: now() });
+            accountLease = refreshed;
+            return accountLease;
+          };
         } catch (error) {
           accountResults.push(Object.freeze({ resource: 'lease', ...safeFailure(error) }));
           results.push(Object.freeze({ accountId: account.id, provider: account.provider, status: 'failed', reason: 'lease_acquisition_failed', resources: Object.freeze(accountResults) }));
@@ -135,15 +148,23 @@ export function createUnifiedSyncCoordinator({
             accountResults.push(Object.freeze({ resource, status: 'skipped', retryable: false, reason: 'reauthorization_required', retryAfterMs: null }));
             continue;
           }
+          if (blockedForLeaseLoss) {
+            accountResults.push(Object.freeze({ resource, status: 'skipped', retryable: true, reason: 'sync_lease_unavailable', retryAfterMs: 5_000 }));
+            continue;
+          }
           try {
             assertSyncStoreScope(store, account);
-            if (accountLease) assertAccountSyncLease(accountLease, account, { now: now() });
-            const outcome = await runners[resource]({ account, adapter, store, maxPages, now, accountLease, leaseManager });
+            if (accountLease) {
+              assertAccountSyncLease(accountLease, account, { now: now() });
+              await heartbeatLease();
+            }
+            const outcome = await runners[resource]({ account, adapter, store, maxPages, now, accountLease, leaseManager, heartbeatLease });
             accountResults.push(Object.freeze({ resource, status: outcome?.status || 'succeeded', retryable: false, reason: null, retryAfterMs: null, mode: outcome?.mode || null, pages: outcome?.pages ?? null, written: outcome?.written ?? null }));
           } catch (error) {
             const failure = safeFailure(error);
             accountResults.push(Object.freeze({ resource, ...failure }));
             if (failure.reason === 'reauthorization_required') blockedForReauthorization = true;
+            if (isLeaseControlFailure(error)) blockedForLeaseLoss = true;
           }
         }
       } finally {
