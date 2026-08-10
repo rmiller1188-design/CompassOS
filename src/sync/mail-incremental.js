@@ -1,4 +1,5 @@
 import { createNormalizedMessage } from "../domain/normalized.js";
+import { runWithLeaseHeartbeat } from "./lease-guarded-operation.js";
 
 export class SyncInvariantError extends Error {}
 
@@ -17,7 +18,7 @@ export function classifySyncError(error) {
   return { retryable: false, reason: "provider_rejected" };
 }
 
-export async function runIncrementalMailSync({ account, adapter, store, maxPages = 100, now = () => new Date(), heartbeatLease = null }) {
+export async function runIncrementalMailSync({ account, adapter, store, maxPages = 100, now = () => new Date(), heartbeatLease = null, heartbeatIntervalMs = undefined }) {
   if (!account?.id || !account?.provider) throw new TypeError("Connected account is required");
   if (!adapter || !store) throw new TypeError("Adapter and store are required");
   if (heartbeatLease != null && typeof heartbeatLease !== "function") throw new TypeError("heartbeatLease must be a function");
@@ -31,7 +32,11 @@ export async function runIncrementalMailSync({ account, adapter, store, maxPages
 
   try {
     while (pages < maxPages) {
-      const page = await adapter.fetchMailPage({ account, cursor: nextCursor, mode });
+      const page = await runWithLeaseHeartbeat({
+        heartbeatLease,
+        ...(heartbeatIntervalMs == null ? {} : { heartbeatIntervalMs }),
+        operation: ({ signal }) => adapter.fetchMailPage({ account, cursor: nextCursor, mode, signal }),
+      });
       if (heartbeatLease) await heartbeatLease();
       assertPage(page);
       const pageKey = page.requestCursor ?? nextCursor ?? "bootstrap";
