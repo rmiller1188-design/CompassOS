@@ -10,8 +10,8 @@ function providerError(response, body) {
   return error;
 }
 
-async function requestJson(fetchFn, url, accessToken) {
-  const response = await fetchFn(url, { headers: { authorization: `Bearer ${accessToken}`, accept: "application/json" } });
+async function requestJson(fetchFn, url, accessToken, { signal } = {}) {
+  const response = await fetchFn(url, { headers: { authorization: `Bearer ${accessToken}`, accept: "application/json" }, signal });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw providerError(response, body);
   return body;
@@ -38,24 +38,24 @@ function emails(value) {
 export function createGmailMailAdapter({ fetchFn = fetch, getAccessToken }) {
   if (typeof getAccessToken !== "function") throw new TypeError("getAccessToken is required");
   return {
-    async fetchMailPage({ account, cursor, mode }) {
+    async fetchMailPage({ account, cursor, mode, signal }) {
       const token = await getAccessToken(account);
       const state = decodeCursor(cursor);
       if (mode === "bootstrap") {
         const params = new URLSearchParams({ maxResults: "100", includeSpamTrash: "false" });
         if (state?.pageToken) params.set("pageToken", state.pageToken);
-        const list = await requestJson(fetchFn, `${GMAIL_BASE}/messages?${params}`, token);
-        const items = await Promise.all((list.messages || []).map(({ id }) => requestJson(fetchFn, `${GMAIL_BASE}/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Message-ID&metadataHeaders=Date`, token)));
+        const list = await requestJson(fetchFn, `${GMAIL_BASE}/messages?${params}`, token, { signal });
+        const items = await Promise.all((list.messages || []).map(({ id }) => requestJson(fetchFn, `${GMAIL_BASE}/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Message-ID&metadataHeaders=Date`, token, { signal })));
         if (list.nextPageToken) return { items, requestCursor: cursor, nextCursor: encodeCursor({ pageToken: list.nextPageToken }) };
-        const profile = await requestJson(fetchFn, `${GMAIL_BASE}/profile`, token);
+        const profile = await requestJson(fetchFn, `${GMAIL_BASE}/profile`, token, { signal });
         return { items, requestCursor: cursor, nextCursor: null, checkpoint: encodeCursor({ historyId: profile.historyId }) };
       }
       if (!state?.historyId) throw new TypeError("Gmail incremental cursor requires historyId");
       const params = new URLSearchParams({ startHistoryId: state.historyId, historyTypes: "messageAdded", maxResults: "100" });
       if (state.pageToken) params.set("pageToken", state.pageToken);
-      const history = await requestJson(fetchFn, `${GMAIL_BASE}/history?${params}`, token);
+      const history = await requestJson(fetchFn, `${GMAIL_BASE}/history?${params}`, token, { signal });
       const ids = [...new Set((history.history || []).flatMap((entry) => entry.messagesAdded || []).map((entry) => entry.message?.id).filter(Boolean))];
-      const items = await Promise.all(ids.map((id) => requestJson(fetchFn, `${GMAIL_BASE}/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Message-ID&metadataHeaders=Date`, token)));
+      const items = await Promise.all(ids.map((id) => requestJson(fetchFn, `${GMAIL_BASE}/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Message-ID&metadataHeaders=Date`, token, { signal })));
       const nextCursor = history.nextPageToken ? encodeCursor({ historyId: state.historyId, pageToken: history.nextPageToken }) : null;
       return { items, requestCursor: cursor, nextCursor, checkpoint: nextCursor ? null : encodeCursor({ historyId: history.historyId || state.historyId }) };
     },
@@ -71,11 +71,11 @@ export function createGmailMailAdapter({ fetchFn = fetch, getAccessToken }) {
 export function createMicrosoftMailAdapter({ fetchFn = fetch, getAccessToken }) {
   if (typeof getAccessToken !== "function") throw new TypeError("getAccessToken is required");
   return {
-    async fetchMailPage({ account, cursor }) {
+    async fetchMailPage({ account, cursor, signal }) {
       const token = await getAccessToken(account);
       const state = decodeCursor(cursor);
       const url = state?.deltaUrl || `${GRAPH_BASE}?$select=id,conversationId,internetMessageId,subject,bodyPreview,from,toRecipients,ccRecipients,sentDateTime,receivedDateTime,isRead,hasAttachments&$top=100`;
-      const body = await requestJson(fetchFn, url, token);
+      const body = await requestJson(fetchFn, url, token, { signal });
       return { items: body.value || [], requestCursor: cursor, nextCursor: body["@odata.nextLink"] ? encodeCursor({ deltaUrl: body["@odata.nextLink"] }) : null, checkpoint: body["@odata.deltaLink"] ? encodeCursor({ deltaUrl: body["@odata.deltaLink"] }) : null };
     },
     normalizeMessage(account, item) {
