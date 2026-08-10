@@ -8,11 +8,15 @@ function abortableWait(ms, signal) {
       reject(signal.reason || new Error('Lease heartbeat wait aborted'));
       return;
     }
-    const timer = setTimeout(resolve, ms);
+    let timer;
     const onAbort = () => {
       clearTimeout(timer);
       reject(signal.reason || new Error('Lease heartbeat wait aborted'));
     };
+    timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
     signal?.addEventListener('abort', onAbort, { once: true });
   });
 }
