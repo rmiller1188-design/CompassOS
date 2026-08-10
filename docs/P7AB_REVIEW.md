@@ -2,7 +2,7 @@
 
 ## Disposition
 
-**REVIEWABLE CORE / LIVE VALIDATION BLOCKED** once the exact final branch head passes the repository production validation gate.
+**REVIEWABLE CORE / LIVE VALIDATION BLOCKED.**
 
 P7AA prevented overlapping scheduler workers from starting the same connected account concurrently, but an account lease could still expire during a long mail/calendar/contacts run. P7AB carries rotating heartbeat ownership through the production sync coordinator and page-processing boundary so cursor/data persistence does not continue after ownership can no longer be proven.
 
@@ -21,11 +21,13 @@ P7AB does not add provider write authority, OAuth scopes, browser credential han
 
 The design intentionally does not use an ambient timer. Renewal occurs at explicit coordinator/resource/page boundaries, making ownership checks deterministic and reviewable. A single provider page request that stalls beyond the lease duration is detected only after the request returns; P7AB then fails before normalized data or cursor persistence for that page. Cancellation of an in-flight provider request remains a separate infrastructure/runtime concern.
 
-## Deterministic validation scope
+## Deterministic validation
 
-Coverage includes rotating heartbeat tokens, release of the refreshed token, heartbeat backend/loss sanitization, fail-closed lease-manager composition, post-fetch cursor non-advancement on renewal failure, and remaining-resource suppression for the affected account. Package version is `0.45.0` and all changed production modules are already in the existing `npm run validate` syntax chain.
+Coverage includes rotating heartbeat tokens, release of the refreshed token, heartbeat backend/loss sanitization, fail-closed lease-manager composition, post-fetch cursor non-advancement on renewal failure, and remaining-resource suppression for the affected account. Package version is `0.45.0` and all changed production modules are in the existing `npm run validate` syntax chain.
 
-Final reviewability requires a fresh GitHub Actions `Validate production core` pass on the exact final branch head after roadmap/review/progress documentation is present.
+GitHub Actions `Validate production core` run **542** passed implementation/documentation candidate head `7163f8a5c819264f14afd0814b136be5ec200d2d` through PR merge validation against exact P7AA base `cc0c86adb458ae8a3a22802385cbb40be84b1260`. The workflow used Node **22.23.1**, completed the production-core syntax chain, and passed **291/291 deterministic tests with zero failures**. The P7AB lease suite occupies tests 1–13, including the new rotating-heartbeat and cursor-safety cases.
+
+This review artifact update creates a documentation-only final head; that exact final head must pass the same production validation gate before milestone notification.
 
 ## Infrastructure blockers
 
