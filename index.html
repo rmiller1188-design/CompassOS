@@ -10,7 +10,7 @@
 </style>
 </head>
 <body>
-<main class="boot"><div class="mark">C</div><h1>Opening Compass</h1><p id="status">Loading the finalized M25.2 workspace…</p><div class="bar"><span></span></div></main>
+<main class="boot"><div class="mark">C</div><h1>Opening Compass</h1><p id="status">Loading CompassOS M26 account runtime…</p><div class="bar"><span></span></div></main>
 <script>
 (async()=>{
   const parts=[1,2,3,4,5,6].map(n=>`payload-${String(n).padStart(2,"0")}.txt`);
@@ -23,7 +23,9 @@
     if(typeof DecompressionStream!=="function")throw new Error("This browser does not support DecompressionStream.");
     const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
     const app=await new Response(stream).text();
-    document.open();document.write(app);document.close();
+    const bridge='<scr'+'ipt src="/oauth-bridge.js" defer></scr'+'ipt>';
+    const bridged=/<\/body>/i.test(app)?app.replace(/<\/body>/i,bridge+'</body>'):app+bridge;
+    document.open();document.write(bridged);document.close();
   }catch(error){
     document.getElementById("status").textContent=`Compass could not open: ${error.message}`;
     console.error(error);
