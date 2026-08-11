@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 
-const REQUIRED_SECRET_KEYS = Object.freeze([
+const REQUIRED_RUNTIME_KEYS = Object.freeze([
   'SUPABASE_URL',
+  'SUPABASE_PUBLISHABLE_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
   'TOKEN_ENVELOPE_KEY',
 ]);
@@ -38,7 +39,7 @@ export function inspectRuntimeConfiguration({ env, enabledProviders = [] }) {
   const unsafeExposure = [];
   const malformed = [];
 
-  for (const key of REQUIRED_SECRET_KEYS) {
+  for (const key of REQUIRED_RUNTIME_KEYS) {
     if (!env[key]) missing.push(key);
   }
 
