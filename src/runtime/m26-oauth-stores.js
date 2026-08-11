@@ -201,12 +201,13 @@ export function createProcessLockStore() {
       const prior = active.get(key) || Promise.resolve();
       let release;
       const gate = new Promise((resolve) => { release = resolve; });
-      active.set(key, prior.then(() => gate));
+      const queued = prior.then(() => gate);
+      active.set(key, queued);
       await prior;
       try { return await fn(); }
       finally {
         release();
-        if (active.get(key) === gate) active.delete(key);
+        if (active.get(key) === queued) active.delete(key);
       }
     },
   };
