@@ -1,6 +1,6 @@
 import { createRuntimeHealth } from '../src/operations/runtime-health.js';
 
-const VERSION = '0.51.0';
+const VERSION = '0.52.0';
 
 export default async function handler(request, response) {
   if (request.method !== 'GET') {
