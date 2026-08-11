@@ -78,7 +78,7 @@
   function statusFor(provider, connections) {
     const item = connections.find((connection) => connection.provider === provider);
     if (!item) return { label: 'Not connected', tone: 'muted', action: 'Connect' };
-    const expired = item.expiresAt && Date.parse(item.expiresAt) <= Date.now();
+    const expired = item.tokenExpiresAt && Date.parse(item.tokenExpiresAt) <= Date.now();
     if (item.status === 'healthy' && !expired) return { label: item.email || 'Connected', tone: 'ok', action: 'Reconnect' };
     if (item.status === 'healthy' && expired) return { label: `${item.email || 'Connected'} · refresh needed`, tone: 'warn', action: 'Reconnect' };
     if (item.status === 'reauth_required') return { label: `${item.email || 'Account'} · sign in again`, tone: 'warn', action: 'Reconnect' };
