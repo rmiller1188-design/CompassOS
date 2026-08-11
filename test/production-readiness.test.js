@@ -17,10 +17,11 @@ const migrations = [
   '20260805_memory_semantic_search.sql',
 ];
 
-test('runtime readiness requires server-only secrets for enabled providers', () => {
+test('runtime readiness requires Supabase auth configuration and server-only secrets for enabled providers', () => {
   const result = inspectRuntimeConfiguration({
     env: {
       SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
       SUPABASE_SERVICE_ROLE_KEY: 'service-role',
       TOKEN_ENVELOPE_KEY: 'envelope-key',
       GOOGLE_CLIENT_ID: 'google-client',
@@ -33,7 +34,7 @@ test('runtime readiness requires server-only secrets for enabled providers', () 
 
   assert.equal(result.ready, true);
   assert.deepEqual(result.missing, []);
-  assert.equal(result.configuredKeyFingerprints.length, 7);
+  assert.equal(result.configuredKeyFingerprints.length, 8);
   assert.equal(JSON.stringify(result).includes('service-role'), false);
   assert.equal(JSON.stringify(result).includes('openai-key'), false);
 });
@@ -49,6 +50,7 @@ test('runtime readiness fails closed for public secret exposure and missing conf
 
   assert.equal(result.ready, false);
   assert.deepEqual(result.unsafeExposure, ['VITE_OPENAI_API_KEY']);
+  assert.ok(result.missing.includes('SUPABASE_PUBLISHABLE_KEY'));
   assert.ok(result.missing.includes('SUPABASE_SERVICE_ROLE_KEY'));
   assert.ok(result.missing.includes('MICROSOFT_CLIENT_SECRET'));
 });
@@ -72,6 +74,7 @@ test('readiness distinguishes infrastructure blockers from failed validation', (
   const runtime = inspectRuntimeConfiguration({
     env: {
       SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
       SUPABASE_SERVICE_ROLE_KEY: 'service-role',
       TOKEN_ENVELOPE_KEY: 'envelope-key',
     },

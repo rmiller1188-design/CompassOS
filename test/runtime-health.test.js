@@ -4,6 +4,7 @@ import { createRuntimeHealth, probeSupabase } from '../src/operations/runtime-he
 
 const completeEnv = Object.freeze({
   SUPABASE_URL: 'https://example.supabase.co',
+  SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
   SUPABASE_SERVICE_ROLE_KEY: 'service-role-value',
   TOKEN_ENVELOPE_KEY: 'base64-key-value',
   GOOGLE_CLIENT_ID: 'google-client',
@@ -17,9 +18,9 @@ const completeEnv = Object.freeze({
 
 test('runtime health is ready when configuration is complete and Supabase is reachable', async () => {
   const fetchImpl = async () => ({ ok: true, status: 200 });
-  const health = await createRuntimeHealth({ env: completeEnv, fetchImpl, version: '0.51.0' });
+  const health = await createRuntimeHealth({ env: completeEnv, fetchImpl, version: '0.52.0' });
   assert.equal(health.ready, true);
-  assert.equal(health.version, '0.51.0');
+  assert.equal(health.version, '0.52.0');
   assert.equal(health.dependencies.supabase.reachable, true);
   assert.deepEqual(health.runtime.missing, []);
 });
@@ -28,7 +29,7 @@ test('runtime health fails closed when required provider configuration is missin
   const env = { ...completeEnv };
   delete env.OPENAI_API_KEY;
   const fetchImpl = async () => ({ ok: true, status: 200 });
-  const health = await createRuntimeHealth({ env, fetchImpl, version: '0.51.0' });
+  const health = await createRuntimeHealth({ env, fetchImpl, version: '0.52.0' });
   assert.equal(health.ready, false);
   assert.deepEqual(health.runtime.missing, ['OPENAI_API_KEY']);
 });
