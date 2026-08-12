@@ -1,0 +1,47 @@
+name: Verify CompassOS M26 Live
+
+on:
+  push:
+    branches:
+      - m26-connected-accounts
+  workflow_dispatch:
+
+concurrency:
+  group: verify-compass-m26-live
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Probe production until healthy
+        run: |
+          node <<'NODE'
+          const base = 'https://compass-os-m26.onrender.com';
+          for (let i = 0; i < 52; i++) {
+            try {
+              const health = await fetch(`${base}/api/health`, { headers: { accept: 'application/json' } });
+              const healthText = await health.text();
+              console.log(`health attempt ${i + 1}: ${health.status} ${healthText.slice(0, 300)}`);
+              let body = {};
+              try { body = JSON.parse(healthText); } catch {}
+              if (health.ok && body.status === 'ready') {
+                const home = await fetch(base, { redirect: 'follow' });
+                const html = await home.text();
+                if (!home.ok) throw new Error(`home returned ${home.status}`);
+                if (!/Compass/i.test(html)) throw new Error('home response does not identify Compass');
+                console.log(`LIVE_URL=${base}`);
+                console.log('CompassOS M26 live verification passed.');
+                process.exit(0);
+              }
+            } catch (error) {
+              console.log(`probe attempt ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
+            }
+            await new Promise(resolve => setTimeout(resolve, 15000));
+          }
+          throw new Error('CompassOS M26 production did not report ready within the verification window.');
+          NODE
