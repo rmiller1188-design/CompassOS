@@ -1,0 +1,194 @@
+name: Ship CompassOS Executive
+
+on:
+  push:
+    branches:
+      - ship/compassos-exec-20260811
+  workflow_dispatch:
+
+concurrency:
+  group: ship-compassos-exec
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      APP_URL: https://compass-os-m26.onrender.com
+      PROJECT_REF: lbsovxsnjhrrgmuetvis
+      TARGET_BRANCH: ship/compassos-exec-20260811
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate production app
+        env:
+          NEXT_PUBLIC_APP_URL: https://compass-os-m26.onrender.com
+          NEXT_PUBLIC_SUPABASE_URL: https://lbsovxsnjhrrgmuetvis.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder-for-static-validation
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-for-static-validation
+          TOKEN_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          OAUTH_STATE_SECRET: 0000000000000000000000000000000000000000000000000000000000000000
+          GOOGLE_CLIENT_ID: placeholder.apps.googleusercontent.com
+          GOOGLE_CLIENT_SECRET: placeholder
+          MICROSOFT_CLIENT_ID: 00000000-0000-0000-0000-000000000000
+          MICROSOFT_CLIENT_SECRET: placeholder
+          MICROSOFT_TENANT: common
+          OPENAI_MODEL: gpt-5
+        run: npm run validate
+
+      - name: Configure existing Render service from existing GitHub secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_M26_SERVICE_ID: ${{ secrets.RENDER_M26_SERVICE_ID }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          MICROSOFT_CLIENT_SECRET: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          MICROSOFT_TENANT: ${{ secrets.MICROSOFT_TENANT }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+        run: |
+          node <<'NODE'
+          import { randomBytes } from 'node:crypto';
+
+          const required = (name) => {
+            const value = process.env[name]?.trim();
+            if (!value) throw new Error(`Missing repository secret: ${name}`);
+            console.log(`::add-mask::${value}`);
+            return value;
+          };
+          const optional = (name) => {
+            const value = process.env[name]?.trim() || '';
+            if (value) console.log(`::add-mask::${value}`);
+            return value;
+          };
+          const request = async (url, { token, method='GET', body }={}) => {
+            const res = await fetch(url, {
+              method,
+              headers: {
+                accept: 'application/json',
+                ...(token ? { authorization: `Bearer ${token}` } : {}),
+                ...(body ? { 'content-type': 'application/json' } : {})
+              },
+              body: body ? JSON.stringify(body) : undefined
+            });
+            const text = await res.text();
+            if (!res.ok) throw new Error(`${method} ${url} failed (${res.status}): ${text.slice(0,300)}`);
+            return text ? JSON.parse(text) : {};
+          };
+
+          const supabaseToken = required('SUPABASE_ACCESS_TOKEN');
+          const renderToken = required('RENDER_API_KEY');
+          const serviceId = required('RENDER_M26_SERVICE_ID');
+          const googleId = required('GOOGLE_CLIENT_ID');
+          const googleSecret = required('GOOGLE_CLIENT_SECRET');
+          const microsoftId = required('MICROSOFT_CLIENT_ID');
+          const microsoftSecret = required('MICROSOFT_CLIENT_SECRET');
+          const openAi = optional('OPENAI_API_KEY');
+
+          const servicePayload = await request(`https://api.render.com/v1/services/${serviceId}`, { token: renderToken });
+          const service = servicePayload.service || servicePayload;
+          if (String(service.name || '') !== 'compass-os-m26') throw new Error(`Safety stop: expected compass-os-m26, got ${service.name || 'unknown'}`);
+
+          const keysPayload = await request(`https://api.supabase.com/v1/projects/${process.env.PROJECT_REF}/api-keys?reveal=true`, { token: supabaseToken });
+          const keys = Array.isArray(keysPayload) ? keysPayload : (keysPayload.api_keys || keysPayload.keys || keysPayload.data || []);
+          const label = row => String(row.name || row.role || '').toLowerCase();
+          const type = row => String(row.type || '').toLowerCase();
+          const pub = keys.find(row => type(row)==='publishable' || label(row).includes('publishable') || label(row)==='anon');
+          const server = keys.find(row => type(row)==='secret' || label(row).includes('secret') || label(row)==='service_role');
+          const publishableKey = pub?.api_key || pub?.key;
+          const serviceKey = server?.api_key || server?.key;
+          if (!publishableKey || !serviceKey) throw new Error('Could not resolve existing Supabase API keys.');
+          console.log(`::add-mask::${publishableKey}`);
+          console.log(`::add-mask::${serviceKey}`);
+
+          const getEnv = async (key) => {
+            const res = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars/${encodeURIComponent(key)}`, {
+              headers: { authorization: `Bearer ${renderToken}`, accept: 'application/json' }
+            });
+            if (res.status === 404) return '';
+            const text = await res.text();
+            if (!res.ok) throw new Error(`Render env read ${key} failed (${res.status})`);
+            const value = text ? JSON.parse(text) : {};
+            return value.value ?? value.envVar?.value ?? value.env_var?.value ?? '';
+          };
+          const putEnv = async (key, value) => {
+            console.log(`::add-mask::${value}`);
+            await request(`https://api.render.com/v1/services/${serviceId}/env-vars/${encodeURIComponent(key)}`, {
+              token: renderToken, method:'PUT', body:{ value }
+            });
+          };
+
+          let encryptionKey = await getEnv('TOKEN_ENCRYPTION_KEY');
+          let stateSecret = await getEnv('OAUTH_STATE_SECRET');
+          if (!encryptionKey) encryptionKey = randomBytes(32).toString('base64');
+          if (!stateSecret) stateSecret = randomBytes(32).toString('hex');
+
+          const envs = {
+            NODE_VERSION: '22',
+            NEXT_PUBLIC_APP_URL: process.env.APP_URL,
+            NEXT_PUBLIC_SUPABASE_URL: `https://${process.env.PROJECT_REF}.supabase.co`,
+            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
+            SUPABASE_SERVICE_ROLE_KEY: serviceKey,
+            TOKEN_ENCRYPTION_KEY: encryptionKey,
+            OAUTH_STATE_SECRET: stateSecret,
+            GOOGLE_CLIENT_ID: googleId,
+            GOOGLE_CLIENT_SECRET: googleSecret,
+            MICROSOFT_CLIENT_ID: microsoftId,
+            MICROSOFT_CLIENT_SECRET: microsoftSecret,
+            MICROSOFT_TENANT: optional('MICROSOFT_TENANT') || 'common',
+            OPENAI_MODEL: optional('OPENAI_MODEL') || 'gpt-5'
+          };
+          if (openAi) envs.OPENAI_API_KEY = openAi;
+          for (const [key, value] of Object.entries(envs)) await putEnv(key, value);
+
+          await request(`https://api.render.com/v1/services/${serviceId}`, {
+            token: renderToken,
+            method:'PATCH',
+            body:{ branch: process.env.TARGET_BRANCH, autoDeploy:'yes' }
+          });
+          const deploy = await request(`https://api.render.com/v1/services/${serviceId}/deploys`, {
+            token: renderToken,
+            method:'POST',
+            body:{ clearCache:'clear' }
+          });
+          console.log(`Render deploy queued: ${deploy.id || deploy.deploy?.id || 'unknown'}`);
+          NODE
+
+      - name: Verify live executive build
+        run: |
+          node <<'NODE'
+          const base = process.env.APP_URL.replace(/\/$/, '');
+          for (let i=0; i<80; i++) {
+            try {
+              const health = await fetch(`${base}/api/health`, { headers:{accept:'application/json'} });
+              const text = await health.text();
+              let body = {};
+              try { body = JSON.parse(text); } catch {}
+              console.log(`health ${i+1}: ${health.status} ${text.slice(0,180)}`);
+              if (health.ok && (body.status === 'ready' || body.ok === true)) {
+                const home = await fetch(base, { redirect:'follow' });
+                if (!home.ok) throw new Error(`Home returned ${home.status}`);
+                console.log('CompassOS production verification passed.');
+                process.exit(0);
+              }
+            } catch (error) {
+              console.log(`verify ${i+1}: ${error.message}`);
+            }
+            await new Promise(resolve => setTimeout(resolve, 15000));
+          }
+          throw new Error('CompassOS production service did not become ready in time.');
+          NODE
