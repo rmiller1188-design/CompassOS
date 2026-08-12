@@ -1,0 +1,6 @@
+.event-utility-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0}
+.visually-hidden-file-input{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.upload-control-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.upload-control-row .form-message{margin:0}
+.file-row:hover{border-color:color-mix(in srgb,var(--accent) 28%,var(--line));background:var(--surface)}
+.task-main-button:hover b,.file-main-button:hover b{color:var(--accent)}
+@media(max-width:720px){.event-utility-actions{align-items:flex-start}.upload-control-row{align-items:flex-start}}

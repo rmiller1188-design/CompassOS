@@ -1,0 +1,39 @@
+{
+  "name": "compass-os-m26",
+  "version": "26.0.0",
+  "private": true,
+  "packageManager": "npm@10.9.8",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0",
+    "lint": "eslint .",
+    "typecheck": "node scripts/check-interactions.mjs && tsc --noEmit",
+    "secrets": "node scripts/generate-secrets.mjs",
+    "check:env": "node scripts/check-env.mjs",
+    "check:migrations": "node scripts/check-migrations.mjs",
+    "check:interactions": "node scripts/check-interactions.mjs",
+    "validate": "npm run check:migrations && npm run check:env && npm run typecheck && npm run lint && npm run build"
+  },
+  "dependencies": {
+    "@supabase/ssr": "0.12.3",
+    "@supabase/supabase-js": "2.112.0",
+    "next": "16.2.12",
+    "openai": "6.49.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "16.2.12",
+    "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
+  }
+}
