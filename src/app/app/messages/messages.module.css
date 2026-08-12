@@ -1,0 +1,85 @@
+.communicationsPage{display:grid;gap:12px}
+
+.communicationsPage :global(.communications-header){display:flex;align-items:center;justify-content:space-between;gap:18px;padding:22px 24px}
+.communicationsPage :global(.communications-header h1){margin:2px 0 5px}
+.communicationsPage :global(.communications-header p.muted){margin:0;max-width:720px;font-size:11px}
+
+.communicationsPage :global(.source-switcher){display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.communicationsPage :global(.source-tab){display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:10px;padding:12px 13px;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.84);box-shadow:0 8px 28px rgba(27,33,48,.05);transition:transform .16s ease,border-color .16s ease,background .16s ease}
+.communicationsPage :global(.source-tab:hover){transform:translateY(-1px);border-color:rgba(110,92,255,.25)}
+.communicationsPage :global(.source-tab.active){background:var(--surface);border-color:rgba(110,92,255,.34);box-shadow:0 12px 34px rgba(110,92,255,.10)}
+.communicationsPage :global(.source-tab-icon){width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:var(--surface-3);font-weight:900;font-size:15px}
+.communicationsPage :global(.source-tab.outlook .source-tab-icon){color:#0078d4;background:rgba(0,120,212,.09)}
+.communicationsPage :global(.source-tab.gmail .source-tab-icon){color:#4285f4;background:rgba(66,133,244,.09)}
+.communicationsPage :global(.source-tab.texts .source-tab-icon){color:#2ba66f;background:rgba(43,166,111,.10)}
+.communicationsPage :global(.source-tab-copy){min-width:0}
+.communicationsPage :global(.source-tab-copy b){display:block;font-size:11px}
+.communicationsPage :global(.source-tab-copy small){display:block;margin-top:2px;font-size:8px;color:var(--muted)}
+
+.communicationsPage :global(.account-strip){display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 14px}
+.communicationsPage :global(.account-strip-copy){display:flex;align-items:center;gap:9px;min-width:210px}
+.communicationsPage :global(.account-strip-copy b){font-size:10px;display:block}
+.communicationsPage :global(.account-strip-copy small){display:block;color:var(--muted);font-size:8px;margin-top:2px}
+.communicationsPage :global(.account-chips){display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.communicationsPage :global(.account-chip){display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface-2);font-size:9px;font-weight:800;color:var(--muted)}
+.communicationsPage :global(.account-chip.active){background:var(--accent-soft);border-color:rgba(110,92,255,.24);color:var(--accent)}
+.communicationsPage :global(.health-dot){width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.communicationsPage :global(.health-dot.healthy){background:var(--good)}
+.communicationsPage :global(.health-dot.syncing){background:var(--warn)}
+.communicationsPage :global(.health-dot.error),.communicationsPage :global(.health-dot.reauth_required){background:var(--bad)}
+
+.communicationsPage :global(.source-empty-banner){display:flex;align-items:center;gap:12px;padding:15px 17px;background:linear-gradient(135deg,rgba(43,166,111,.06),rgba(255,255,255,.94))}
+.communicationsPage :global(.source-empty-icon){width:44px;height:44px;border-radius:14px;background:rgba(43,166,111,.1);color:var(--good);display:grid;place-items:center;font-weight:900}
+.communicationsPage :global(.source-empty-banner b){font-size:11px}
+.communicationsPage :global(.source-empty-banner p){font-size:9px;color:var(--muted);margin:3px 0 0;line-height:1.45}
+
+.communicationsPage :global(.messages-two-pane.source-aware){grid-template-columns:minmax(330px,390px) minmax(0,1fr)}
+.communicationsPage :global(.active-account-label){display:block;margin-top:3px;color:var(--accent);font-size:8px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.communicationsPage :global(.source-message-row){align-items:start;padding:11px}
+.communicationsPage :global(.source-message-row.selected){background:var(--accent-soft);border-color:rgba(110,92,255,.22)}
+.communicationsPage :global(.provider-icon.texts){color:var(--good);background:rgba(43,166,111,.10)}
+.communicationsPage :global(.message-row-copy){min-width:0}
+.communicationsPage :global(.message-source-line){display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px}
+.communicationsPage :global(.message-source-line>span){font-size:8px;text-transform:uppercase;letter-spacing:.04em;font-weight:900;color:var(--accent)}
+.communicationsPage :global(.message-source-line>small){font-size:7px!important;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+
+.communicationsPage :global(.message-context-banner){display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 12px;margin-bottom:4px;border:1px solid var(--line);border-radius:15px;background:var(--surface-2)}
+.communicationsPage :global(.message-context-banner small){display:block;color:var(--muted);font-size:8px;margin-bottom:2px}
+.communicationsPage :global(.message-context-banner b){display:block;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.communicationsPage :global(.detail-header){margin-top:8px}
+.communicationsPage :global(.detail-meta){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.communicationsPage :global(.detail-meta>div){padding:10px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2);min-width:0}
+.communicationsPage :global(.detail-meta small){display:block;font-size:7px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.communicationsPage :global(.detail-meta b){display:block;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.communicationsPage :global(.thread-stack){display:grid;gap:9px}
+.communicationsPage :global(.thread-message){padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2)}
+.communicationsPage :global(.thread-message.selected){border-color:rgba(110,92,255,.22);background:rgba(110,92,255,.04)}
+.communicationsPage :global(.thread-message-heading){display:flex;justify-content:space-between;gap:10px;margin-bottom:10px}
+.communicationsPage :global(.thread-message-heading b){display:block;font-size:10px}
+.communicationsPage :global(.thread-message-heading small){display:block;font-size:8px;color:var(--muted);margin-top:2px}
+.communicationsPage :global(.message-body){font-size:11px;line-height:1.62;white-space:pre-wrap;word-break:break-word}
+.communicationsPage :global(.detail-note){font-size:8px;color:var(--muted);margin:10px 0 0}
+
+@media(max-width:900px){
+  .communicationsPage :global(.source-switcher){grid-template-columns:repeat(2,minmax(0,1fr))}
+  .communicationsPage :global(.account-strip){align-items:flex-start;flex-direction:column}
+  .communicationsPage :global(.account-chips){justify-content:flex-start}
+  .communicationsPage :global(.messages-two-pane.source-aware){grid-template-columns:300px minmax(0,1fr)}
+}
+
+@media(max-width:720px){
+  .communicationsPage{gap:9px}
+  .communicationsPage :global(.communications-header){padding:16px;align-items:flex-start}
+  .communicationsPage :global(.communications-header .button){white-space:nowrap}
+  .communicationsPage :global(.source-switcher){display:flex;overflow-x:auto;gap:7px;padding-bottom:2px;scrollbar-width:none}
+  .communicationsPage :global(.source-switcher::-webkit-scrollbar){display:none}
+  .communicationsPage :global(.source-tab){min-width:142px;grid-template-columns:36px minmax(0,1fr);padding:9px 10px}
+  .communicationsPage :global(.source-tab-icon){width:36px;height:36px;border-radius:11px}
+  .communicationsPage :global(.account-strip){padding:11px}
+  .communicationsPage :global(.account-chips){width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}
+  .communicationsPage :global(.account-chip){white-space:nowrap}
+  .communicationsPage :global(.messages-two-pane.source-aware){display:block}
+  .communicationsPage :global(.messages-two-pane.source-aware .list-pane){min-height:0}
+  .communicationsPage :global(.messages-two-pane.source-aware .detail-pane){display:none}
+  .communicationsPage :global(.message-source-line>small){max-width:125px}
+}
