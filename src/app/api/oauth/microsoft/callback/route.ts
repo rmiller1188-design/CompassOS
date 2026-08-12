@@ -13,6 +13,13 @@ function publicError(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
   if (message === "OAUTH_ACCESS_DENIED") return "microsoft_access_denied";
   if (message === "UNAUTHORIZED") return "sign_in_required";
+  if (message === "INVALID_OAUTH_CALLBACK") return "microsoft_callback_state";
+  if (message === "OAUTH_SUBJECT_MISMATCH") return "microsoft_subject_mismatch";
+  if (message === "PROFILE_WORKSPACE_NOT_FOUND") return "microsoft_profile_workspace";
+  if (message.startsWith("MICROSOFT_TOKEN_EXCHANGE_")) return message.toLowerCase();
+  if (message.startsWith("MICROSOFT_IDENTITY_")) return message.toLowerCase();
+  if (message === "MICROSOFT_IDENTITY_RESPONSE_INVALID") return "microsoft_identity_invalid";
+  if (message === "CONNECTION_WRITE_FAILED") return "microsoft_connection_write";
   return "microsoft_connection_failed";
 }
 
