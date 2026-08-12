@@ -38,7 +38,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder-for-static-validation
           SUPABASE_SERVICE_ROLE_KEY: placeholder-for-static-validation
           TOKEN_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
-          OAUTH_STATE_SECRET: 0000000000000000000000000000000000000000000000000000000000000000
+          OAUTH_STATE_SECRET: "0000000000000000000000000000000000000000000000000000000000000000"
           GOOGLE_CLIENT_ID: placeholder.apps.googleusercontent.com
           GOOGLE_CLIENT_SECRET: placeholder
           MICROSOFT_CLIENT_ID: 00000000-0000-0000-0000-000000000000
@@ -62,7 +62,6 @@ jobs:
         run: |
           node <<'NODE'
           import { randomBytes } from 'node:crypto';
-
           const required = (name) => {
             const value = process.env[name]?.trim();
             if (!value) throw new Error(`Missing repository secret: ${name}`);
@@ -88,7 +87,6 @@ jobs:
             if (!res.ok) throw new Error(`${method} ${url} failed (${res.status}): ${text.slice(0,300)}`);
             return text ? JSON.parse(text) : {};
           };
-
           const supabaseToken = required('SUPABASE_ACCESS_TOKEN');
           const renderToken = required('RENDER_API_KEY');
           const serviceId = required('RENDER_M26_SERVICE_ID');
@@ -97,11 +95,9 @@ jobs:
           const microsoftId = required('MICROSOFT_CLIENT_ID');
           const microsoftSecret = required('MICROSOFT_CLIENT_SECRET');
           const openAi = optional('OPENAI_API_KEY');
-
           const servicePayload = await request(`https://api.render.com/v1/services/${serviceId}`, { token: renderToken });
           const service = servicePayload.service || servicePayload;
           if (String(service.name || '') !== 'compass-os-m26') throw new Error(`Safety stop: expected compass-os-m26, got ${service.name || 'unknown'}`);
-
           const keysPayload = await request(`https://api.supabase.com/v1/projects/${process.env.PROJECT_REF}/api-keys?reveal=true`, { token: supabaseToken });
           const keys = Array.isArray(keysPayload) ? keysPayload : (keysPayload.api_keys || keysPayload.keys || keysPayload.data || []);
           const label = row => String(row.name || row.role || '').toLowerCase();
@@ -113,7 +109,6 @@ jobs:
           if (!publishableKey || !serviceKey) throw new Error('Could not resolve existing Supabase API keys.');
           console.log(`::add-mask::${publishableKey}`);
           console.log(`::add-mask::${serviceKey}`);
-
           const getEnv = async (key) => {
             const res = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars/${encodeURIComponent(key)}`, {
               headers: { authorization: `Bearer ${renderToken}`, accept: 'application/json' }
@@ -130,12 +125,10 @@ jobs:
               token: renderToken, method:'PUT', body:{ value }
             });
           };
-
           let encryptionKey = await getEnv('TOKEN_ENCRYPTION_KEY');
           let stateSecret = await getEnv('OAUTH_STATE_SECRET');
           if (!encryptionKey) encryptionKey = randomBytes(32).toString('base64');
           if (!stateSecret) stateSecret = randomBytes(32).toString('hex');
-
           const envs = {
             NODE_VERSION: '22',
             NEXT_PUBLIC_APP_URL: process.env.APP_URL,
@@ -153,7 +146,6 @@ jobs:
           };
           if (openAi) envs.OPENAI_API_KEY = openAi;
           for (const [key, value] of Object.entries(envs)) await putEnv(key, value);
-
           await request(`https://api.render.com/v1/services/${serviceId}`, {
             token: renderToken,
             method:'PATCH',
