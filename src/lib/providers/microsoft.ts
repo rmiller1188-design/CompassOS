@@ -31,6 +31,17 @@ function microsoftTokenSet(json: Record<string, unknown>, retainedRefreshToken: 
   };
 }
 
+function microsoftOAuthFailure(prefix: string, status: number, payload: Record<string, unknown>): Error {
+  const description = typeof payload.error_description === "string" ? payload.error_description : "";
+  const codeMatch = description.match(/AADSTS(\d+)/);
+  const aadsts = codeMatch?.[1] || "";
+  if (aadsts === "7000215" || aadsts === "7000222") return new Error(`${prefix}_CLIENT_SECRET`);
+  if (aadsts === "700016") return new Error(`${prefix}_CLIENT_ID`);
+  if (aadsts === "50011") return new Error(`${prefix}_REDIRECT_URI`);
+  if (aadsts === "70000" || aadsts === "70008") return new Error(`${prefix}_AUTH_CODE`);
+  return new Error(`${prefix}_${status}`);
+}
+
 export function microsoftAuthorizationUrl(state: string, codeChallenge: string): string {
   const url = new URL(authorizeEndpoint());
   url.searchParams.set("client_id", env.microsoftClientId());
@@ -59,8 +70,9 @@ export async function exchangeMicrosoftCode(code: string, codeVerifier: string):
     }),
     cache: "no-store"
   });
-  if (!response.ok) throw new Error(`MICROSOFT_TOKEN_EXCHANGE_${response.status}`);
-  return microsoftTokenSet(await response.json() as Record<string, unknown>);
+  const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
+  if (!response.ok) throw microsoftOAuthFailure("MICROSOFT_TOKEN_EXCHANGE", response.status, payload);
+  return microsoftTokenSet(payload);
 }
 
 export async function refreshMicrosoftToken(refreshToken: string): Promise<ProviderTokenSet> {
@@ -76,8 +88,9 @@ export async function refreshMicrosoftToken(refreshToken: string): Promise<Provi
     }),
     cache: "no-store"
   });
-  if (!response.ok) throw new Error(`MICROSOFT_TOKEN_REFRESH_${response.status}`);
-  return microsoftTokenSet(await response.json() as Record<string, unknown>, refreshToken);
+  const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
+  if (!response.ok) throw microsoftOAuthFailure("MICROSOFT_TOKEN_REFRESH", response.status, payload);
+  return microsoftTokenSet(payload, refreshToken);
 }
 
 export async function microsoftIdentity(accessToken: string): Promise<ProviderIdentity> {
