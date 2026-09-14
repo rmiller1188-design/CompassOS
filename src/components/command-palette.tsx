@@ -67,7 +67,7 @@ export function CommandPalette() {
       {open && (
         <div className={styles.overlay} role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setOpen(false); }}>
           <section className={styles.palette} role="dialog" aria-modal="true" aria-label="Compass command center">
-            <form className={styles.searchRow} onSubmit={search}>
+            <form id="compass-command-search" className={styles.searchRow} onSubmit={search}>
               <span className={styles.searchIcon}>⌕</span>
               <input ref={inputRef} value={query} onChange={event => setQuery(event.target.value)} placeholder="Search Compass or jump somewhere…" aria-label="Command or search"/>
               <span className={styles.escape}>esc</span>
@@ -82,7 +82,7 @@ export function CommandPalette() {
                     <span className={styles.arrow}>›</span>
                   </Link>
                 ))}
-                {!filtered.length && <button className={styles.item} type="submit" form="compass-command-search" onClick={() => { setOpen(false); router.push(`/app/search?q=${encodeURIComponent(query.trim())}`); }}><span className={styles.itemIcon}>⌕</span><span><b>Search Compass for “{query.trim()}”</b><small>Messages, calendar, people, files, and tasks</small></span><span className={styles.arrow}>↵</span></button>}
+                {!filtered.length && <button className={styles.item} type="submit" form="compass-command-search"><span className={styles.itemIcon}>⌕</span><span><b>Search Compass for “{query.trim()}”</b><small>Messages, calendar, people, files, and tasks</small></span><span className={styles.arrow}>↵</span></button>}
               </div>
             </div>
             <div className={styles.footer}><span>Type to filter destinations or press Enter to search all Compass data.</span><span>⌘K anywhere</span></div>
