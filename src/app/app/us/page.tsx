@@ -56,6 +56,7 @@ export default async function UsPage() {
     const workspaces = Array.isArray(row.workspaces) ? row.workspaces : row.workspaces ? [row.workspaces] : [];
     return workspaces.some(workspace => workspace.id === shared.id);
   });
+  const canManage = new Set(["owner", "admin"]).has(currentMembership?.role || "");
 
   const [eventResult, taskResult, memberResult, fileResult, invitationResult] = await Promise.all([
     admin.from("calendar_events")
@@ -66,7 +67,9 @@ export default async function UsPage() {
       .eq("workspace_id", shared.id).neq("status", "cancelled").order("created_at", { ascending: false }).limit(100),
     admin.from("workspace_members").select("user_id,role", { count: "exact" }).eq("workspace_id", shared.id),
     admin.from("file_entries").select("id,file_name,content_type,size_bytes,created_at").eq("workspace_id", shared.id).eq("visibility", "shared").order("created_at", { ascending: false }).limit(20),
-    admin.from("workspace_invitations").select("id,email,expires_at,accepted_at,created_at").eq("workspace_id", shared.id).order("created_at", { ascending: false }).limit(20)
+    canManage
+      ? admin.from("workspace_invitations").select("id,email,expires_at,accepted_at,created_at").eq("workspace_id", shared.id).order("created_at", { ascending: false }).limit(20)
+      : Promise.resolve({ data: [] })
   ]);
 
   const sharedEvents = (eventResult.data || []) as SharedEvent[];
@@ -109,9 +112,9 @@ export default async function UsPage() {
 
         <div className={styles.stack}>
           <section className={`${styles.card} card`}>
-            <div className={styles.header}><div><p className="eyebrow">People</p><h2>Invite partner</h2><p>They sign in separately and authorize their own accounts.</p></div><span className="pill">{memberCount} members</span></div>
-            <InvitePartnerForm workspaceId={shared.id}/>
-            {pendingInvites.length > 0 && <div className={styles.inviteList}>{pendingInvites.slice(0, 5).map(invite => <div className={styles.invite} key={invite.id}><span className={styles.inviteIcon}>✉</span><span className={styles.copy}><b>{invite.email}</b><p>Invitation pending</p><small>Expires {new Date(invite.expires_at).toLocaleDateString()}</small></span><span className="pill">pending</span></div>)}</div>}
+            <div className={styles.header}><div><p className="eyebrow">People</p><h2>{canManage ? "Invite partner" : "Shared membership"}</h2><p>{canManage ? "They sign in separately and authorize their own accounts." : "Only workspace owners and admins can create new invitations."}</p></div><span className="pill">{memberCount} members</span></div>
+            {canManage ? <InvitePartnerForm workspaceId={shared.id}/> : <div className={styles.empty}>Your role is {currentMembership?.role || "member"}. Invitation controls remain with the workspace owner/admin.</div>}
+            {canManage && pendingInvites.length > 0 && <div className={styles.inviteList}>{pendingInvites.slice(0, 5).map(invite => <div className={styles.invite} key={invite.id}><span className={styles.inviteIcon}>✉</span><span className={styles.copy}><b>{invite.email}</b><p>Invitation pending</p><small>Expires {new Date(invite.expires_at).toLocaleDateString()}</small></span><span className="pill">pending</span></div>)}</div>}
           </section>
 
           <section className={`${styles.card} card`}>
