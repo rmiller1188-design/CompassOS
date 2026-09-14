@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type Brief = { headline: string; urgent: string[]; schedule: string[]; shared: string[] };
+type Brief = { headline: string; urgent: string[]; schedule: string[]; followUps: string[] };
 type BriefMode = "local" | "ai" | null;
 
 function briefErrorMessage(code: string | undefined): string {
@@ -18,7 +18,7 @@ export function DailyBrief({ workspaceId }: { workspaceId: string }) {
 
   async function generate() {
     setBusy(true);
-    setMessage("Building your private brief…");
+    setMessage("Building your private executive brief…");
     try {
       const response = await fetch("/api/ai/brief", {
         method: "POST",
@@ -29,12 +29,12 @@ export function DailyBrief({ workspaceId }: { workspaceId: string }) {
       if (response.ok) {
         setBrief(json.brief);
         setMode(json.mode === "ai" ? "ai" : "local");
-        setMessage(json.mode === "ai" ? "AI brief generated from synced Compass data." : "Brief generated locally from synced Compass data.");
+        setMessage(json.mode === "ai" ? "AI brief generated from synced Compass data." : "Executive brief generated locally from synced Compass data.");
       } else {
         setMessage(briefErrorMessage(json.error));
       }
     } catch {
-      setMessage("Compass could not reach the Daily Brief service.");
+      setMessage("Compass could not reach the Executive Brief service.");
     } finally {
       setBusy(false);
     }
@@ -42,11 +42,11 @@ export function DailyBrief({ workspaceId }: { workspaceId: string }) {
 
   return (
     <section className="card hero-card span-8">
-      <div className="section-heading"><p className="eyebrow">Today</p>{mode && <span className="pill" title="Brief generation method">{mode === "ai" ? "AI enhanced" : "Local summary"}</span>}</div>
-      <h1>{brief?.headline || "Your connected day will appear here."}</h1>
-      {!brief && <p className="muted">Generate a private summary from synced messages, events, and follow-ups. It works locally; an OpenAI API key optionally enhances the wording.</p>}
-      {brief && <div className="brief-columns"><BriefList title="Urgent" items={brief.urgent}/><BriefList title="Schedule" items={brief.schedule}/><BriefList title="Follow-ups" items={brief.shared}/></div>}
-      <button className="button primary" onClick={() => void generate()} disabled={busy}>{busy ? "Building brief…" : brief ? "Refresh brief" : "Generate my brief"}</button>
+      <div className="section-heading"><div><p className="eyebrow">Executive brief</p><h2>What deserves your attention</h2></div>{mode && <span className="pill" title="Brief generation method">{mode === "ai" ? "AI enhanced" : "Local summary"}</span>}</div>
+      <h1>{brief?.headline || "Your connected operating brief will appear here."}</h1>
+      {!brief && <p className="muted">Generate a private, source-aware summary from synced communications, account health, schedule, and follow-ups. Compass keeps a deterministic local fallback if AI generation is unavailable.</p>}
+      {brief && <div className="brief-columns"><BriefList title="Needs attention" items={brief.urgent}/><BriefList title="Schedule" items={brief.schedule}/><BriefList title="Follow-ups" items={brief.followUps}/></div>}
+      <button className="button primary" onClick={() => void generate()} disabled={busy}>{busy ? "Building brief…" : brief ? "Refresh executive brief" : "Generate executive brief"}</button>
       {message && <p className="form-message" role="status" aria-live="polite">{message}</p>}
     </section>
   );
