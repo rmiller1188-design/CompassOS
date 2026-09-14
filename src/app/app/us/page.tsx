@@ -10,16 +10,10 @@ export const dynamic = "force-dynamic";
 
 type SharedWorkspace = { id: string; name: string; kind: string; created_by: string };
 type Membership = { role: string; workspaces: SharedWorkspace | SharedWorkspace[] | null };
-type SharedEvent = { id: string; title: string; description: string | null; location: string | null; starts_at: string; ends_at: string; all_day: boolean; raw_metadata: unknown };
+type SharedEvent = { id: string; title: string; description: string | null; location: string | null; starts_at: string; ends_at: string; all_day: boolean };
 type SharedTask = { id: string; title: string; notes: string | null; status: string; due_at: string | null; created_at: string };
 type SharedFile = { id: string; file_name: string; content_type: string; size_bytes: number; created_at: string };
 type Invitation = { id: string; email: string; expires_at: string; accepted_at: string | null; created_at: string };
-
-function sourceEventId(event: SharedEvent): string | null {
-  if (!event.raw_metadata || typeof event.raw_metadata !== "object") return null;
-  const value = (event.raw_metadata as Record<string, unknown>).sharedFromEventId;
-  return typeof value === "string" && value ? value : null;
-}
 
 function sizeLabel(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -65,7 +59,7 @@ export default async function UsPage() {
 
   const [eventResult, taskResult, memberResult, fileResult, invitationResult] = await Promise.all([
     admin.from("calendar_events")
-      .select("id,title,description,location,starts_at,ends_at,all_day,raw_metadata")
+      .select("id,title,description,location,starts_at,ends_at,all_day")
       .eq("workspace_id", shared.id).eq("provider", "shared").gte("ends_at", new Date().toISOString()).order("starts_at").limit(30),
     admin.from("shared_tasks")
       .select("id,title,notes,status,due_at,created_at")
@@ -101,13 +95,9 @@ export default async function UsPage() {
       <div className={styles.grid}>
         <div className={styles.stack}>
           <section className={`${styles.card} card`}>
-            <div className={styles.header}><div><p className="eyebrow">Shared schedule</p><h2>Upcoming</h2><p>Only events explicitly copied into Us appear here.</p></div><span className="pill">{sharedEvents.length}</span></div>
+            <div className={styles.header}><div><p className="eyebrow">Shared schedule</p><h2>Upcoming</h2><p>Only events explicitly copied into Us appear here. Shared copies do not link back into another member's private calendar.</p></div><span className="pill">{sharedEvents.length}</span></div>
             <div className={styles.eventList}>
-              {sharedEvents.length ? sharedEvents.map(event => {
-                const sourceId = sourceEventId(event);
-                const content = <><span className={styles.date}><b>{new Date(event.starts_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</b><small>{event.all_day ? "All day" : new Date(event.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></span><span className={styles.copy}><b>{event.title}</b><p>{event.location || "No location"}</p>{event.description && <small>{event.description}</small>}</span><span>›</span></>;
-                return sourceId ? <Link className={styles.event} href={`/app/calendar?event=${sourceId}`} key={event.id}>{content}</Link> : <article className={styles.event} key={event.id}>{content}</article>;
-              }) : <div className={styles.empty}>No events have been shared into Us yet. Open Calendar and choose Share to Us.</div>}
+              {sharedEvents.length ? sharedEvents.map(event => <article className={styles.event} key={event.id}><span className={styles.date}><b>{new Date(event.starts_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</b><small>{event.all_day ? "All day" : new Date(event.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></span><span className={styles.copy}><b>{event.title}</b><p>{event.location || "No location"}</p>{event.description && <small>{event.description}</small>}</span><span className="pill">shared</span></article>) : <div className={styles.empty}>No events have been shared into Us yet. Open Calendar and choose Share to Us.</div>}
             </div>
           </section>
 
