@@ -1,0 +1,67 @@
+.missionControl{display:grid;gap:14px}
+.heroShell{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.75fr);gap:12px}
+.executiveHeader{padding:24px 26px;position:relative;overflow:hidden}
+.executiveHeader:after{content:"";position:absolute;right:-90px;top:-120px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(110,92,255,.16),transparent 68%);pointer-events:none}
+.executiveHeader>*{position:relative;z-index:1}
+.headerTop{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
+.headerCopy h1{font-size:32px;letter-spacing:-.045em;margin:4px 0 8px;line-height:1.04}
+.headerCopy p{max-width:720px;margin:0;color:var(--muted);font-size:11px;line-height:1.6}
+.headerActions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.pulseRow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:22px}
+.pulseCard{padding:12px 13px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.76);min-width:0}
+.pulseCard small{display:block;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:800}
+.pulseCard b{display:block;font-size:22px;letter-spacing:-.04em;margin:3px 0 1px}
+.pulseCard span{display:block;font-size:8px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.briefWrap{min-width:0}
+.briefWrap :global(.hero-card){height:100%;min-height:100%;grid-column:auto}
+.statusRail{display:grid;gap:12px}
+.statusCard{padding:18px}
+.statusHeading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.statusHeading h2{margin:0;font-size:14px}
+.healthList{display:grid;gap:8px}
+.healthRow{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:9px;padding:9px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2)}
+.healthIcon{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-weight:900;background:var(--surface-3)}
+.healthIcon.google{color:#4285f4;background:rgba(66,133,244,.09)}
+.healthIcon.microsoft{color:#0078d4;background:rgba(0,120,212,.09)}
+.healthCopy{min-width:0}
+.healthCopy b{display:block;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.healthCopy small{display:block;font-size:7px;color:var(--muted);margin-top:2px}
+.systemNotice{padding:11px 12px;border-radius:13px;border:1px solid var(--line);background:var(--surface-2);font-size:9px;line-height:1.5;color:var(--muted)}
+.systemNotice.bad{border-color:rgba(216,84,101,.24);background:rgba(216,84,101,.06);color:var(--bad)}
+.mainGrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(330px,.85fr);gap:12px}
+.stack{display:grid;gap:12px;align-content:start}
+.sectionCard{padding:18px}
+.sectionHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.sectionHeader h2{font-size:15px;margin:0}
+.sectionHeader p{font-size:9px;color:var(--muted);margin:3px 0 0;line-height:1.45}
+.sourceGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.sourceCard{display:block;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2);transition:transform .16s ease,border-color .16s ease}
+.sourceCard:hover{transform:translateY(-1px);border-color:rgba(110,92,255,.24)}
+.sourceTop{display:flex;align-items:center;gap:9px}
+.sourceIcon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:900;background:var(--surface-3)}
+.sourceIcon.outlook{color:#0078d4;background:rgba(0,120,212,.09)}
+.sourceIcon.gmail{color:#4285f4;background:rgba(66,133,244,.09)}
+.sourceIcon.texts{color:#2ba66f;background:rgba(43,166,111,.09)}
+.sourceTop b{display:block;font-size:10px}
+.sourceTop small{display:block;font-size:7px;color:var(--muted);margin-top:2px}
+.sourceMetric{font-size:25px;letter-spacing:-.05em;margin-top:11px;font-weight:800}
+.sourceFoot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:3px;font-size:8px;color:var(--muted)}
+.attentionList,.timelineList,.messagePreviewList{display:grid;gap:7px}
+.attentionItem,.timelineItem,.messagePreview{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:9px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+.attentionIcon,.timelineIcon,.messagePreviewIcon{width:36px;height:36px;border-radius:11px;background:var(--surface-3);display:grid;place-items:center;font-size:13px;font-weight:800}
+.attentionIcon.bad{color:var(--bad);background:rgba(216,84,101,.09)}
+.attentionItem b,.timelineItem b,.messagePreview b{display:block;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attentionItem small,.timelineItem small,.messagePreview small{display:block;font-size:7px;color:var(--muted);margin-top:2px;line-height:1.4}
+.messagePreview{grid-template-columns:36px minmax(0,1fr)}
+.messagePreviewCopy{min-width:0}
+.messagePreviewCopy p{font-size:8px;color:var(--muted);margin:3px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timeBadge{font-size:7px;color:var(--muted);white-space:nowrap}
+.quickGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.quickAction{display:grid;gap:4px;padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2);font-size:9px;font-weight:800}
+.quickAction span{font-size:16px}
+.quickAction small{font-size:7px;font-weight:500;color:var(--muted)}
+.emptyCompact{padding:16px;border:1px dashed var(--line);border-radius:14px;text-align:center;color:var(--muted);font-size:9px}
+.taskWrap :global(.card){box-shadow:none}
+.taskWrap :global(.section-heading){margin-bottom:8px}
+@media(max-width:1040px){.heroShell{grid-template-columns:1fr}.statusRail{grid-template-columns:1fr 1fr}.mainGrid{grid-template-columns:1fr}.pulseRow{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:720px){.missionControl{gap:9px}.executiveHeader{padding:18px}.headerTop{display:block}.headerActions{justify-content:flex-start;margin-top:13px}.headerCopy h1{font-size:27px}.pulseRow{grid-template-columns:repeat(2,1fr);margin-top:16px}.statusRail{grid-template-columns:1fr}.sourceGrid{grid-template-columns:1fr 1fr}.quickGrid{grid-template-columns:1fr 1fr}.mainGrid{display:block}.stack{margin-top:9px}.sectionCard{padding:14px}.attentionItem,.timelineItem{grid-template-columns:34px minmax(0,1fr)}.timeBadge{grid-column:2}.sourceCard{padding:12px}}
