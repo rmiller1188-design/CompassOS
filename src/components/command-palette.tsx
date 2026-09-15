@@ -11,6 +11,7 @@ const destinations = [
   { href: "/app/messages?source=gmail", icon: "G", label: "Gmail", note: "Google communications" },
   { href: "/app/messages?source=texts", icon: "◉", label: "Texts", note: "Messaging source" },
   { href: "/app/calendar", icon: "◷", label: "Calendar", note: "Connected schedules" },
+  { href: "/app/projects", icon: "◆", label: "Projects", note: "Bids, jobs, RFIs, submittals and estimates" },
   { href: "/app/people", icon: "◎", label: "People", note: "Contacts and relationships" },
   { href: "/app/files", icon: "▣", label: "Files", note: "Private cloud storage" },
   { href: "/app/decisions", icon: "✓", label: "Decision Center", note: "Review and approve proposed actions" },
@@ -83,7 +84,7 @@ export function CommandPalette() {
                     <span className={styles.arrow}>›</span>
                   </Link>
                 ))}
-                {!filtered.length && <button className={styles.item} type="submit" form="compass-command-search"><span className={styles.itemIcon}>⌕</span><span><b>Search Compass for “{query.trim()}”</b><small>Messages, calendar, people, files, tasks, and decisions</small></span><span className={styles.arrow}>↵</span></button>}
+                {!filtered.length && <button className={styles.item} type="submit" form="compass-command-search"><span className={styles.itemIcon}>⌕</span><span><b>Search Compass for “{query.trim()}”</b><small>Messages, calendar, projects, people, files, tasks, and decisions</small></span><span className={styles.arrow}>↵</span></button>}
               </div>
             </div>
             <div className={styles.footer}><span>Type to filter destinations or press Enter to search all Compass data.</span><span>⌘K anywhere</span></div>
