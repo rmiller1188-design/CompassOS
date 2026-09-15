@@ -12,18 +12,13 @@ function labelFor(element: HTMLElement, index: number): string {
   const heading = element.querySelector("h1,h2,h3,.section-heading b,b")?.textContent?.replace(/\s+/g, " ").trim();
   return heading || `Section ${index + 1}`;
 }
-
-function slug(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 46) || "section";
-}
-
+function slug(value: string): string { return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 46) || "section"; }
 function gridColumn(size: CardSize | undefined): string {
   if (size === "compact") return "span 4 / span 4";
   if (size === "wide") return "span 8 / span 8";
   if (size === "full") return "1 / -1";
   return "";
 }
-
 function cleanLayout(layout: LayoutSettings): LayoutSettings {
   const cleaned: LayoutSettings = {};
   for (const [page, rules] of Object.entries(layout)) {
@@ -46,6 +41,7 @@ export function LayoutStudio({ initialLayout }: { initialLayout: LayoutSettings 
   const [cards, setCards] = useState<CardRecord[]>([]);
   const [layout, setLayout] = useState<LayoutSettings>(initialLayout || {});
   const [status, setStatus] = useState("");
+  const [dragging, setDragging] = useState<string | null>(null);
   const elements = useRef(new Map<string, HTMLElement>());
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
@@ -65,12 +61,15 @@ export function LayoutStudio({ initialLayout }: { initialLayout: LayoutSettings 
     setCards(records);
   }, [pathname]);
 
+  const pageRules = layout[pathname] || {};
+  const orderedCards = useMemo(() => [...cards].sort((a, b) => (pageRules[a.id]?.order ?? a.index) - (pageRules[b.id]?.order ?? b.index)), [cards, pageRules]);
+
   const apply = useCallback(() => {
-    const pageRules = layoutRef.current[pathname] || {};
+    const rules = layoutRef.current[pathname] || {};
     for (const card of cards) {
       const element = elements.current.get(card.id);
       if (!element) continue;
-      const rule = pageRules[card.id] || {};
+      const rule = rules[card.id] || {};
       element.style.display = rule.hidden ? "none" : "";
       element.style.order = typeof rule.order === "number" ? String(rule.order) : "";
       element.style.gridColumn = gridColumn(rule.size);
@@ -79,15 +78,8 @@ export function LayoutStudio({ initialLayout }: { initialLayout: LayoutSettings 
     }
   }, [cards, pathname]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(collect, 40);
-    return () => window.clearTimeout(timer);
-  }, [collect, pathname]);
-
-  useEffect(() => {
-    apply();
-  }, [apply, layout, cards]);
-
+  useEffect(() => { const timer = window.setTimeout(collect, 40); return () => window.clearTimeout(timer); }, [collect, pathname]);
+  useEffect(() => { apply(); }, [apply, layout, cards]);
   useEffect(() => {
     document.documentElement.dataset.layoutEdit = open ? "true" : "false";
     return () => { delete document.documentElement.dataset.layoutEdit; };
@@ -96,85 +88,80 @@ export function LayoutStudio({ initialLayout }: { initialLayout: LayoutSettings 
   async function persist(next: LayoutSettings) {
     const cleaned = cleanLayout(next);
     setLayout(cleaned);
-    setStatus("Saving layout…");
+    setStatus("Saving…");
     try {
-      const response = await fetch("/api/settings/layout", {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ layout: cleaned })
-      });
+      const response = await fetch("/api/settings/layout", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ layout: cleaned }) });
       if (!response.ok) throw new Error("layout_save_failed");
-      setStatus("Layout saved to your profile.");
-    } catch {
-      setStatus("Layout changed on this device, but profile save failed.");
-    }
+      setStatus("Saved");
+    } catch { setStatus("Saved on this device; profile sync needs attention."); }
   }
 
   function updateCard(id: string, patch: LayoutRule) {
     const currentPage = layout[pathname] || {};
-    const nextPage = { ...currentPage, [id]: { ...(currentPage[id] || {}), ...patch } };
+    void persist({ ...layout, [pathname]: { ...currentPage, [id]: { ...(currentPage[id] || {}), ...patch } } });
+  }
+
+  function reorder(sourceId: string, targetId: string) {
+    if (sourceId === targetId) return;
+    const visible = orderedCards.filter(card => !pageRules[card.id]?.hidden);
+    const from = visible.findIndex(card => card.id === sourceId);
+    const to = visible.findIndex(card => card.id === targetId);
+    if (from < 0 || to < 0) return;
+    const nextOrder = [...visible];
+    const [moved] = nextOrder.splice(from, 1);
+    nextOrder.splice(to, 0, moved);
+    const nextPage = { ...pageRules };
+    nextOrder.forEach((card, order) => { nextPage[card.id] = { ...(nextPage[card.id] || {}), order }; });
     void persist({ ...layout, [pathname]: nextPage });
   }
 
   function move(id: string, direction: -1 | 1) {
-    const ordered = visibleCards.map((card, index) => ({ ...card, order: pageRules[card.id]?.order ?? index }));
-    const index = ordered.findIndex(card => card.id === id);
+    const visible = orderedCards.filter(card => !pageRules[card.id]?.hidden);
+    const index = visible.findIndex(card => card.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= ordered.length) return;
-    const swapped = [...ordered];
-    [swapped[index], swapped[target]] = [swapped[target], swapped[index]];
-    const nextPage = { ...pageRules };
-    swapped.forEach((card, order) => { nextPage[card.id] = { ...(nextPage[card.id] || {}), order }; });
-    void persist({ ...layout, [pathname]: nextPage });
+    if (index < 0 || target < 0 || target >= visible.length) return;
+    reorder(id, visible[target].id);
   }
 
   function resetPage() {
     const next = { ...layout };
     delete next[pathname];
-    for (const element of elements.current.values()) {
-      element.style.display = "";
-      element.style.order = "";
-      element.style.gridColumn = "";
-    }
+    for (const element of elements.current.values()) { element.style.display = ""; element.style.order = ""; element.style.gridColumn = ""; }
     void persist(next);
   }
 
-  const pageRules = layout[pathname] || {};
-  const visibleCards = useMemo(() => [...cards].sort((a, b) => (pageRules[a.id]?.order ?? a.index) - (pageRules[b.id]?.order ?? b.index)), [cards, pageRules]);
-
   return (
     <>
-      <button className={styles.trigger} type="button" onClick={() => { collect(); setOpen(true); }} aria-haspopup="dialog" aria-expanded={open} title="Edit this layout"><span>Edit layout</span><span aria-hidden="true">✣</span></button>
+      <button className={styles.trigger} type="button" onClick={() => { collect(); setOpen(true); }} aria-haspopup="dialog" aria-expanded={open} title="Customize this page"><span>Customize</span><span aria-hidden="true">✣</span></button>
       {open && (
-        <aside className={styles.panel} role="dialog" aria-modal="false" aria-label="Layout editor">
+        <aside className={styles.panel} role="dialog" aria-modal="false" aria-label="Page layout editor">
           <div className={styles.header}>
-            <div><span className={styles.badge}>This page</span><h2>Layout Studio</h2><p>Move, resize, hide, restore, and reset visible sections. Hiding is reversible; it does not delete data.</p></div>
+            <div><span className={styles.badge}>This page</span><h2>Edit layout</h2><p>Drag sections into your preferred order, change their width, or remove them from this view. Removed sections can always be restored.</p></div>
             <button className={styles.close} type="button" onClick={() => setOpen(false)} aria-label="Close layout editor">×</button>
           </div>
-          <div className={styles.toolbar}>
-            <button className={styles.mini} type="button" onClick={collect}>Refresh sections</button>
-            <button className={styles.mini} type="button" onClick={resetPage}>Reset page</button>
-          </div>
+          <div className={styles.toolbar}><button className={styles.mini} type="button" onClick={collect}>Refresh</button><button className={styles.mini} type="button" onClick={resetPage}>Reset page</button></div>
           <div className={styles.cardList}>
-            {visibleCards.length ? visibleCards.map(card => {
+            {orderedCards.length ? orderedCards.map(card => {
               const rule = pageRules[card.id] || {};
               return (
-                <div className={`${styles.row}${rule.hidden ? ` ${styles.hidden}` : ""}`} key={card.id}>
-                  <div className={styles.rowTop}><span><b>{card.label}</b><small>{rule.hidden ? "Hidden" : `Size: ${rule.size || "auto"}`}</small></span><span className={styles.badge}>{card.index + 1}</span></div>
+                <div className={`${styles.row}${rule.hidden ? ` ${styles.hidden}` : ""}`} key={card.id} draggable={!rule.hidden}
+                  onDragStart={() => setDragging(card.id)} onDragEnd={() => setDragging(null)}
+                  onDragOver={event => { if (!rule.hidden) event.preventDefault(); }}
+                  onDrop={event => { event.preventDefault(); if (dragging) reorder(dragging, card.id); setDragging(null); }}>
+                  <div className={styles.rowTop}><span><b>{rule.hidden ? "○" : "⠿"} {card.label}</b><small>{rule.hidden ? "Removed from page" : `Width: ${rule.size || "auto"} · drag to reorder`}</small></span><span className={styles.badge}>{rule.hidden ? "Off" : "On"}</span></div>
                   <div className={styles.actions}>
-                    <button type="button" onClick={() => move(card.id, -1)}>Move up</button>
-                    <button type="button" onClick={() => move(card.id, 1)}>Move down</button>
-                    {sizes.map(size => <button key={size} type="button" className={(rule.size || "auto") === size ? styles.active : ""} onClick={() => updateCard(card.id, { size })}>{size}</button>)}
-                    <button type="button" onClick={() => updateCard(card.id, { hidden: !rule.hidden })}>{rule.hidden ? "Restore" : "Hide"}</button>
+                    {!rule.hidden && <><button type="button" onClick={() => move(card.id, -1)} aria-label={`Move ${card.label} up`}>↑</button><button type="button" onClick={() => move(card.id, 1)} aria-label={`Move ${card.label} down`}>↓</button></>}
+                    {!rule.hidden && sizes.map(size => <button key={size} type="button" className={(rule.size || "auto") === size ? styles.active : ""} onClick={() => updateCard(card.id, { size })}>{size === "auto" ? "Auto" : size === "compact" ? "S" : size === "wide" ? "L" : "Full"}</button>)}
+                    <button type="button" onClick={() => updateCard(card.id, { hidden: !rule.hidden })}>{rule.hidden ? "Restore" : "Remove"}</button>
                   </div>
                 </div>
               );
-            }) : <div className={styles.empty}>No editable sections found on this page.</div>}
+            }) : <div className={styles.empty}>This page has no editable sections yet.</div>}
           </div>
           {status && <p className={styles.status} role="status">{status}</p>}
         </aside>
       )}
-      {open && <div className={styles.modeTag}>Layout editing</div>}
+      {open && <div className={styles.modeTag}>Editing this page</div>}
     </>
   );
 }
