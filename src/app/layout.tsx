@@ -6,6 +6,7 @@ import "./appearance.css";
 import "./interactions.css";
 import "./usability.css";
 import "./personalization.css";
+import "./finish.css";
 
 export const metadata: Metadata = {
   title: "CompassOS",
