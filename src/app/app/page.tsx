@@ -41,7 +41,7 @@ type HomeEvent = {
   provider: string;
   location: string | null;
 };
-type AttentionItem = { label: string; note: string; href: string; kind: "connection" | "task" };
+type AttentionItem = { label: string; note: string; href: string; kind: "account" | "task" };
 
 function providerLabel(provider: string): string {
   return provider === "microsoft" ? "Outlook" : provider === "google" ? "Gmail" : provider;
@@ -100,8 +100,8 @@ export default async function DashboardPage() {
   const recentMessages = (messageResult.data || []) as HomeMessage[];
   const events = (eventResult.data || []) as HomeEvent[];
   const tasks = (taskResult.data || []) as HomeTask[];
-  const healthyConnections = connections.filter(connection => connection.status === "healthy");
-  const unhealthyConnections = connections.filter(connection => connection.status !== "healthy" && connection.status !== "syncing");
+  const accountItems = connections.filter(connection => connection.status === "healthy" || connection.status === "syncing");
+  const accountsNeedingReview = connections.filter(connection => connection.status !== "healthy" && connection.status !== "syncing");
   const openTasks = tasks.filter(task => task.status !== "done");
   const overdueTasks = openTasks.filter(task => task.due_at && new Date(task.due_at).getTime() < now.getTime());
   const nextEvent = events[0] || null;
@@ -118,11 +118,11 @@ export default async function DashboardPage() {
   });
 
   const attention: AttentionItem[] = [
-    ...unhealthyConnections.map(connection => ({
+    ...accountsNeedingReview.map(connection => ({
       label: `${providerLabel(connection.provider)} · ${connection.account_email}`,
-      note: `Connection status: ${connection.status.replace("_", " ")}`,
+      note: "Review account details in Connections",
       href: "/app/settings/connections",
-      kind: "connection" as const
+      kind: "account" as const
     })),
     ...overdueTasks.slice(0, 4).map(task => ({
       label: task.title,
@@ -136,7 +136,7 @@ export default async function DashboardPage() {
     <div className={styles.missionControl}>
       {!connections.length && (
         <section className="notice">
-          <b>Mission Control is waiting for a data source.</b> Connect Google or Microsoft and run the first sync to populate communications, calendar, and people.
+          <b>Add your first source.</b> Connect Google or Microsoft to bring communications, calendar, and people into your private workspace.
         </section>
       )}
 
@@ -144,8 +144,8 @@ export default async function DashboardPage() {
         <div className={styles.headerTop}>
           <div className={styles.headerCopy}>
             <p className="eyebrow">Mission Control</p>
-            <h1>{profile.display_name ? `${profile.display_name}, here is your operating picture.` : "Your operating picture."}</h1>
-            <p>One place for what needs attention, what is next, and which account or workspace it belongs to. Source identity stays visible instead of disappearing into a generic feed.</p>
+            <h1>{profile.display_name ? `${profile.display_name}, here is your workspace.` : "Your workspace."}</h1>
+            <p>A personal operating view for what matters now, where it lives, and what you may want to handle next.</p>
           </div>
           <div className={styles.headerActions}>
             <Link className="button primary" href="/app/messages">Open communications</Link>
@@ -153,10 +153,10 @@ export default async function DashboardPage() {
           </div>
         </div>
         <div className={styles.pulseRow}>
-          <PulseCard label="Accounts" value={`${healthyConnections.length}/${connections.length}`} note="healthy connections"/>
-          <PulseCard label="Messages" value={String(totalMessages)} note="synced email + texts"/>
-          <PulseCard label="Follow-ups" value={String(openTasks.length)} note={overdueTasks.length ? `${overdueTasks.length} overdue` : "none overdue"}/>
-          <PulseCard label="Next" value={nextEvent ? new Date(nextEvent.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "Clear"} note={nextEvent?.title || "no upcoming event"}/>
+          <PulseCard label="Sources" value={`${accountItems.length}/${connections.length}`} note="available accounts"/>
+          <PulseCard label="Messages" value={String(totalMessages)} note="email + texts"/>
+          <PulseCard label="Follow-ups" value={String(openTasks.length)} note={overdueTasks.length ? `${overdueTasks.length} overdue` : "clear"}/>
+          <PulseCard label="Next" value={nextEvent ? new Date(nextEvent.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "Clear"} note={nextEvent?.title || "open schedule"}/>
         </div>
       </section>
 
@@ -164,21 +164,21 @@ export default async function DashboardPage() {
         <div className={styles.briefWrap}><DailyBrief workspaceId={profile.personal_workspace_id}/></div>
         <div className={styles.statusRail}>
           <section className={`${styles.statusCard} card`}>
-            <div className={styles.statusHeading}><h2>Account health</h2><Link className="text-link" href="/app/settings/connections">Manage</Link></div>
+            <div className={styles.statusHeading}><h2>Sources</h2><Link className="text-link" href="/app/settings/connections">Manage</Link></div>
             <div className={styles.healthList}>
               {connections.length ? connections.map(connection => (
                 <Link href={`/app/messages?source=${connection.provider === "google" ? "gmail" : "outlook"}&account=${connection.id}`} className={styles.healthRow} key={connection.id}>
                   <span className={`${styles.healthIcon} ${connection.provider === "google" ? styles.google : styles.microsoft}`}>{connection.provider === "google" ? "G" : "O"}</span>
-                  <span className={styles.healthCopy}><b>{connection.account_email}</b><small>{providerLabel(connection.provider)}{connection.last_sync_at ? ` · synced ${shortDate(connection.last_sync_at)}` : " · not synced yet"}</small></span>
-                  <span className={`status ${connection.status}`}>{connection.status.replace("_", " ")}</span>
+                  <span className={styles.healthCopy}><b>{connection.account_email}</b><small>{providerLabel(connection.provider)}{connection.last_sync_at ? ` · updated ${shortDate(connection.last_sync_at)}` : ""}</small></span>
+                  <span className="pill">Open</span>
                 </Link>
-              )) : <div className={styles.emptyCompact}>No connected accounts.</div>}
+              )) : <div className={styles.emptyCompact}>No sources connected yet.</div>}
             </div>
           </section>
           <section className={`${styles.statusCard} card`}>
-            <div className={styles.statusHeading}><h2>System pulse</h2><span className="pill">Live data</span></div>
+            <div className={styles.statusHeading}><h2>Today</h2><span className="pill">Current</span></div>
             <div className={`${styles.systemNotice}${attention.length ? ` ${styles.bad}` : ""}`}>
-              {attention.length ? `${attention.length} item${attention.length === 1 ? "" : "s"} need attention across connections and follow-ups.` : "No connection failures or overdue follow-ups detected."}
+              {attention.length ? `${attention.length} item${attention.length === 1 ? "" : "s"} ready for review.` : "Nothing urgent is standing out right now."}
             </div>
           </section>
         </div>
@@ -187,20 +187,20 @@ export default async function DashboardPage() {
       <div className={styles.mainGrid}>
         <div className={styles.stack}>
           <section className={`${styles.sectionCard} card`}>
-            <div className={styles.sectionHeader}><div><p className="eyebrow">Communications</p><h2>Choose the source you mean</h2><p>Outlook, Gmail, and Texts remain distinct. All is available only when you want aggregation.</p></div><Link className="text-link" href="/app/messages">Open all →</Link></div>
+            <div className={styles.sectionHeader}><div><p className="eyebrow">Communications</p><h2>Choose the source you mean</h2><p>Outlook, Gmail, and Texts stay distinct. All is available when you want the combined view.</p></div><Link className="text-link" href="/app/messages">Open all →</Link></div>
             <div className={styles.sourceGrid}>
               <SourceCard label="Outlook" provider="outlook" icon="O" count={outlookCount} accounts={connections.filter(connection => connection.provider === "microsoft").length}/>
               <SourceCard label="Gmail" provider="gmail" icon="G" count={gmailCount} accounts={connections.filter(connection => connection.provider === "google").length}/>
               <SourceCard label="Texts" provider="texts" icon="◉" count={textCount} accounts={textCount ? 1 : 0}/>
               <Link className={styles.sourceCard} href="/app/messages">
-                <div className={styles.sourceTop}><span className={styles.sourceIcon}>✦</span><span><b>All communications</b><small>Aggregated only when requested</small></span></div>
-                <div className={styles.sourceMetric}>{totalMessages}</div><div className={styles.sourceFoot}><span>all synced items</span><span>Open →</span></div>
+                <div className={styles.sourceTop}><span className={styles.sourceIcon}>✦</span><span><b>All communications</b><small>Combined view</small></span></div>
+                <div className={styles.sourceMetric}>{totalMessages}</div><div className={styles.sourceFoot}><span>items</span><span>Open →</span></div>
               </Link>
             </div>
           </section>
 
           <section className={`${styles.sectionCard} card`}>
-            <div className={styles.sectionHeader}><div><p className="eyebrow">Recent inbound</p><h2>Latest communications</h2><p>Every item preserves its provider and account identity.</p></div></div>
+            <div className={styles.sectionHeader}><div><p className="eyebrow">Recent inbound</p><h2>Latest communications</h2><p>Each item keeps its source and account identity.</p></div></div>
             <div className={styles.messagePreviewList}>
               {recentMessages.length ? recentMessages.map(message => {
                 const connection = message.connection_id ? connectionById.get(message.connection_id) : null;
@@ -211,7 +211,7 @@ export default async function DashboardPage() {
                     <span className={styles.messagePreviewCopy}><b>{message.subject || message.sender || "Message"}</b><small>{label}{connection?.account_email ? ` · ${connection.account_email}` : ""} · {shortDate(message.occurred_at)}</small><p>{message.preview || "No preview available"}</p></span>
                   </Link>
                 );
-              }) : <div className={styles.emptyCompact}>No inbound communications have been synced yet.</div>}
+              }) : <div className={styles.emptyCompact}>No inbound communications yet.</div>}
             </div>
           </section>
 
@@ -223,19 +223,19 @@ export default async function DashboardPage() {
 
         <div className={styles.stack}>
           <section className={`${styles.sectionCard} card`}>
-            <div className={styles.sectionHeader}><div><p className="eyebrow">Needs attention</p><h2>Exceptions first</h2><p>Connection issues and overdue commitments rise above routine activity.</p></div></div>
+            <div className={styles.sectionHeader}><div><p className="eyebrow">Review</p><h2>Items to look at</h2><p>Important account notices and overdue commitments stay visible without taking over the workspace.</p></div></div>
             <div className={styles.attentionList}>
               {attention.length ? attention.map((item, index) => (
                 <Link className={styles.attentionItem} href={item.href} key={`${item.kind}-${index}-${item.label}`}>
-                  <span className={`${styles.attentionIcon} ${styles.bad}`}>{item.kind === "connection" ? "!" : "↗"}</span>
-                  <span><b>{item.label}</b><small>{item.note}</small></span><span className={styles.timeBadge}>Review</span>
+                  <span className={`${styles.attentionIcon} ${styles.bad}`}>{item.kind === "account" ? "!" : "↗"}</span>
+                  <span><b>{item.label}</b><small>{item.note}</small></span><span className={styles.timeBadge}>Open</span>
                 </Link>
-              )) : <div className={styles.emptyCompact}>No blockers detected. Mission Control is clear.</div>}
+              )) : <div className={styles.emptyCompact}>Everything looks clear.</div>}
             </div>
           </section>
 
           <section className={`${styles.sectionCard} card`}>
-            <div className={styles.sectionHeader}><div><p className="eyebrow">Calendar</p><h2>What is next</h2><p>Upcoming events from your private connected calendars.</p></div><Link className="text-link" href="/app/calendar">Calendar →</Link></div>
+            <div className={styles.sectionHeader}><div><p className="eyebrow">Calendar</p><h2>What is next</h2><p>Upcoming events from your private calendars.</p></div><Link className="text-link" href="/app/calendar">Calendar →</Link></div>
             <div className={styles.timelineList}>
               {events.length ? events.map(event => (
                 <Link className={styles.timelineItem} href={`/app/calendar?event=${event.id}`} key={event.id}>
@@ -249,11 +249,11 @@ export default async function DashboardPage() {
             <div className={styles.sectionHeader}><div><p className="eyebrow">Launchpad</p><h2>Go directly to the work</h2></div></div>
             <div className={styles.quickGrid}>
               <QuickAction href="/app/search" icon="⌕" label="Search" note="Across Compass"/>
-              <QuickAction href="/app/calendar" icon="◷" label="Calendar" note={`${events.length} upcoming loaded`}/>
+              <QuickAction href="/app/calendar" icon="◷" label="Calendar" note={`${events.length} upcoming`}/>
               <QuickAction href="/app/people" icon="◎" label="People" note={`${peopleCount} synced`}/>
               <QuickAction href="/app/files" icon="▣" label="Files" note={`${fileCount} stored`}/>
-              <QuickAction href="/app/us" icon="♡" label="Us" note={hasSharedWorkspace ? "Shared space active" : "Set up shared space"}/>
-              <QuickAction href="/app/settings/connections" icon="⚙" label="Accounts" note={`${connections.length} connected`}/>
+              <QuickAction href="/app/us" icon="♡" label="Us" note={hasSharedWorkspace ? "Shared space" : "Set up sharing"}/>
+              <QuickAction href="/app/settings/connections" icon="↔" label="Connections" note={`${connections.length} sources`}/>
             </div>
           </section>
         </div>
@@ -269,8 +269,8 @@ function PulseCard({ label, value, note }: { label: string; value: string; note:
 function SourceCard({ label, provider, icon, count, accounts }: { label: string; provider: "outlook" | "gmail" | "texts"; icon: string; count: number; accounts: number }) {
   return (
     <Link className={styles.sourceCard} href={`/app/messages?source=${provider}`}>
-      <div className={styles.sourceTop}><span className={`${styles.sourceIcon} ${styles[provider]}`}>{icon}</span><span><b>{label}</b><small>{accounts ? `${accounts} source${accounts === 1 ? "" : "s"}` : "Not connected"}</small></span></div>
-      <div className={styles.sourceMetric}>{count}</div><div className={styles.sourceFoot}><span>synced items</span><span>Open →</span></div>
+      <div className={styles.sourceTop}><span className={`${styles.sourceIcon} ${styles[provider]}`}>{icon}</span><span><b>{label}</b><small>{accounts ? `${accounts} source${accounts === 1 ? "" : "s"}` : "Add source"}</small></span></div>
+      <div className={styles.sourceMetric}>{count}</div><div className={styles.sourceFoot}><span>items</span><span>Open →</span></div>
     </Link>
   );
 }
@@ -280,5 +280,5 @@ function QuickAction({ href, icon, label, note }: { href: string; icon: string; 
 }
 
 function SetupRequired() {
-  return <section className="card empty-state"><h1>Finish database setup</h1><p>Run the M26 Supabase migrations, then sign out and sign back in. Compass will create your private profile and personal workspace automatically.</p><Link className="button primary" href="/app/settings/connections">Open setup</Link></section>;
+  return <section className="card empty-state"><h1>Finish setup</h1><p>Compass needs its workspace tables before it can create your profile and private workspace.</p><Link className="button primary" href="/app/settings/connections">Open setup</Link></section>;
 }
