@@ -65,12 +65,26 @@ create policy project_items_member_select on public.project_items for select to 
 create policy project_items_owner_insert on public.project_items for insert to authenticated with check (
   owner_id=auth.uid() and exists(select 1 from public.projects p where p.id=project_id and p.owner_id=auth.uid())
 );
-create policy project_items_owner_update on public.project_items for update to authenticated using (owner_id=auth.uid()) with check (owner_id=auth.uid());
-create policy project_items_owner_delete on public.project_items for delete to authenticated using (owner_id=auth.uid());
+create policy project_items_owner_update on public.project_items for update to authenticated using (owner_id=auth.uid()) with check (
+  owner_id=auth.uid() and exists(select 1 from public.projects p where p.id=project_id and p.owner_id=auth.uid())
+);
+create policy project_items_owner_delete on public.project_items for delete to authenticated using (
+  owner_id=auth.uid() and exists(select 1 from public.projects p where p.id=project_id and p.owner_id=auth.uid())
+);
 
 create policy project_links_member_select on public.project_links for select to authenticated using (
   exists(select 1 from public.projects p where p.id=project_id and public.is_workspace_member(p.workspace_id))
 );
-create policy project_links_owner_all on public.project_links for all to authenticated using (owner_id=auth.uid()) with check (owner_id=auth.uid());
+create policy project_links_owner_insert on public.project_links for insert to authenticated with check (
+  owner_id=auth.uid() and exists(select 1 from public.projects p where p.id=project_id and p.owner_id=auth.uid())
+);
+create policy project_links_owner_update on public.project_links for update to authenticated using (
+  owner_id=auth.uid() and exists(select 1 from public.projects p where p.id=project_id and p.owner_id=auth.uid())
+) with check (
+  owner_id=auth.uid() and exists(select 1 from public.projects p where p.id=project_id and p.owner_id=auth.uid())
+);
+create policy project_links_owner_delete on public.project_links for delete to authenticated using (
+  owner_id=auth.uid() and exists(select 1 from public.projects p where p.id=project_id and p.owner_id=auth.uid())
+);
 
 commit;
