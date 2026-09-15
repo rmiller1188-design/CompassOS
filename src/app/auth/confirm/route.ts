@@ -18,23 +18,39 @@ function safeInternalDestination(value: string | null): string {
 export async function GET(request: NextRequest) {
   const tokenHash = request.nextUrl.searchParams.get("token_hash");
   const type = request.nextUrl.searchParams.get("type") as EmailOtpType | null;
+  const code = request.nextUrl.searchParams.get("code");
   const next = safeInternalDestination(request.nextUrl.searchParams.get("next"));
-
-  if (!tokenHash || !type) {
-    return NextResponse.redirect(new URL("/sign-in?error=auth_callback_missing_code", env.appUrl()));
-  }
-
   const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
 
-  if (error) {
-    console.error("Supabase email confirmation failed", {
-      code: error.code,
-      status: error.status,
-      message: error.message
-    });
-    return NextResponse.redirect(new URL("/sign-in?error=auth_callback_failed", env.appUrl()));
+  if (tokenHash && type) {
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+
+    if (error) {
+      console.error("Supabase email token confirmation failed", {
+        code: error.code,
+        status: error.status,
+        message: error.message
+      });
+      return NextResponse.redirect(new URL("/sign-in?error=auth_callback_failed", env.appUrl()));
+    }
+
+    return NextResponse.redirect(new URL(next, env.appUrl()));
   }
 
-  return NextResponse.redirect(new URL(next, env.appUrl()));
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      console.error("Supabase email PKCE confirmation failed", {
+        code: error.code,
+        status: error.status,
+        message: error.message
+      });
+      return NextResponse.redirect(new URL("/sign-in?error=auth_callback_failed", env.appUrl()));
+    }
+
+    return NextResponse.redirect(new URL(next, env.appUrl()));
+  }
+
+  return NextResponse.redirect(new URL("/sign-in?error=auth_callback_missing_code", env.appUrl()));
 }
