@@ -6,18 +6,18 @@ import { usePathname, useRouter } from "next/navigation";
 import styles from "./command-palette.module.css";
 
 const destinations = [
-  { href: "/app", icon: "⌂", label: "Mission Control", note: "Executive operating picture" },
+  { href: "/app", icon: "⌂", label: "Mission Control", note: "Your workspace" },
   { href: "/app/messages?source=outlook", icon: "O", label: "Outlook", note: "Microsoft communications" },
   { href: "/app/messages?source=gmail", icon: "G", label: "Gmail", note: "Google communications" },
   { href: "/app/messages?source=texts", icon: "◉", label: "Texts", note: "Messaging source" },
-  { href: "/app/calendar", icon: "◷", label: "Calendar", note: "Connected schedules" },
+  { href: "/app/calendar", icon: "◷", label: "Calendar", note: "Schedules" },
   { href: "/app/projects", icon: "◆", label: "Projects", note: "Bids, jobs, RFIs, submittals and estimates" },
   { href: "/app/people", icon: "◎", label: "People", note: "Contacts and relationships" },
-  { href: "/app/files", icon: "▣", label: "Files", note: "Private cloud storage" },
-  { href: "/app/decisions", icon: "✓", label: "Decision Center", note: "Review and approve proposed actions" },
+  { href: "/app/files", icon: "▣", label: "Files", note: "Documents and uploads" },
+  { href: "/app/decisions", icon: "✓", label: "Decisions", note: "Review proposed actions" },
   { href: "/app/us", icon: "♡", label: "Us", note: "Shared workspace" },
-  { href: "/app/settings/connections", icon: "↔", label: "Accounts", note: "Connections and sync health" },
-  { href: "/app/settings", icon: "⚙", label: "Settings", note: "Appearance and profile" }
+  { href: "/app/settings/connections", icon: "↔", label: "Connections", note: "Accounts and permissions" },
+  { href: "/app/settings", icon: "✣", label: "Personal studio", note: "Appearance and layouts" }
 ] as const;
 
 export function CommandPalette() {
@@ -57,9 +57,7 @@ export function CommandPalette() {
   }
 
   const normalized = query.trim().toLocaleLowerCase();
-  const filtered = normalized
-    ? destinations.filter(item => `${item.label} ${item.note}`.toLocaleLowerCase().includes(normalized))
-    : destinations;
+  const filtered = normalized ? destinations.filter(item => `${item.label} ${item.note}`.toLocaleLowerCase().includes(normalized)) : destinations;
 
   return (
     <>
