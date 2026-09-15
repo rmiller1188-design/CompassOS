@@ -1,8 +1,6 @@
-# Compass AI M25.2 — Widget Studio
+# Compass OS M26 — Connected Accounts
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Frmiller1188-design%2FCompassOS)
-
-Compass AI is a condensed two-person communications OS prototype built around five primary destinations:
+M26 is the first full-stack Compass implementation. It keeps the condensed five-destination product model:
 
 - Home
 - Messages
@@ -10,87 +8,96 @@ Compass AI is a condensed two-person communications OS prototype built around fi
 - Us
 - Search
 
-The repository contains the finalized M25.2 interactive release and a root-level `render.yaml` Blueprint for deployment as a free Render static site.
+The existing M25.2 static prototype remains on `main`. M26 is developed on `m26-connected-accounts` until the backend and OAuth configuration are validated.
 
-## Deploy on Render
+## What is implemented
 
-1. Click **Deploy to Render** above.
-2. Sign in to Render and review the `compass-os` static site Blueprint.
-3. Approve the Blueprint deployment.
-4. Render will publish the site and automatically redeploy future commits to `main`.
+- Supabase authentication with magic link and optional Google/Microsoft sign-in
+- Separate private profile and personal workspace for every user
+- Shared `Us` workspace with invitation and acceptance flow
+- Google OAuth connection for Gmail, Calendar, and Contacts read access
+- Microsoft OAuth connection for Outlook Mail, Calendar, and Contacts read access
+- AES-256-GCM encrypted provider credential vault
+- Google and Microsoft first-sync endpoints
+- Unified normalized tables for messages, events, and people
+- Supabase Storage file uploads with workspace-scoped RLS
+- iPhone `/api/share-intake` endpoint
+- SwiftUI companion app and Share extension scaffold
+- OpenAI Responses API private daily brief with `store: false` and strict JSON schema output
+- External action approval table for future send/write/financial operations
+- Render Node deployment Blueprint
+- One-click owner-authorized Supabase and Render provisioning workflow
 
-## Widget sizing
+## Security model
 
-- Small
-- Medium
-- Large
-- Wide
-- Full width
-- Exact 2–12 column width
-- Automatic or fixed height
-- Exact fixed height
-- Adjustable internal padding
+- Provider passwords are never collected.
+- Google/Microsoft OAuth tokens are encrypted server-side.
+- Token ciphertext is stored in `provider_credentials`, which is not readable by authenticated clients.
+- Every user owns a private workspace.
+- A shared workspace contains only deliberately shared objects.
+- Google and Microsoft connections begin read-only.
+- Send, calendar-write, and financial actions remain disabled until an explicit approval workflow is implemented.
 
-## Layout
+## Automated completion
 
-- Click a widget to edit it
-- Drag widgets to rearrange them
-- Move earlier or later
-- Layout order persists per screen
-- Home, Messages, Calendar, Us, and Search each keep their own layout
-- Reset one screen without resetting the others
+The default branch exposes **Actions → Finish Compass M26**. After account-owner secrets are stored directly in GitHub, the workflow:
 
-## Text and typography
+1. Creates or reuses the Supabase project.
+2. Applies migrations `001` through `006`.
+3. Configures Supabase Auth redirects.
+4. Retrieves project keys without printing them.
+5. Refuses to touch the working static Render service.
+6. Configures the separate `compass-os-m26` web service.
+7. Preserves encryption secrets across reruns.
+8. Deploys M26 and waits for `/api/health` to report `ready`.
 
-- Edit widget title
-- Edit first supporting text
-- Direct on-widget text editing
-- Apple/System font
-- Rounded font
-- Serif font
-- Monospace font
-- Humanist font
-- Title size
-- Body size
-- Title weight
-- Line height
-- Letter spacing
-- Left, center, or right alignment
-- Independent title and body colors
+See `docs/FINISH_M26.md` for the owner-authorization handoff. Do not paste secrets into chat or commit them to the repository.
 
-## Panel styling
+## Local setup
 
-- Per-widget background color
-- Background-only transparency
-- Corner radius
-- Border width
-- Border color
-- None, soft, standard, strong, or glow shadow
+1. Create a Supabase project or use the automated workflow.
+2. Run all SQL files in `supabase/migrations` in numeric order.
+3. Copy `.env.example` to `.env.local`.
+4. Generate secrets with `npm run secrets`.
+5. Configure Google and Microsoft OAuth using `docs/OAUTH_SETUP.md`.
+6. Install and run:
 
-## Widget actions
+```bash
+npm install
+npm run dev
+```
 
-- Duplicate
-- Minimize or expand
-- Hide
-- Restore
-- Reset
-- Delete copied widgets
+7. Open `http://localhost:3000`.
 
-## Transparency correction
+## Render deployment
 
-Transparency no longer changes the opacity of the text, buttons, icons, or the entire element.
+Create a separate Render deployment for `compass-os-m26` from the M26 branch. Do not point the existing live static service at M26 until the Supabase migrations and OAuth callbacks are ready.
 
-Each panel uses:
+See `docs/DEPLOYMENT.md` and `docs/FINISH_M26.md`.
 
-1. An isolated page-background layer that masks the interface underneath.
-2. A separate translucent surface layer.
-3. A fully opaque content layer for text, buttons, and icons.
+## iPhone companion
 
-Reducing transparency reveals the app background or wallpaper—not the text and cards underneath the panel.
+See `ios/Compass/README.md`. The Share extension accepts only content the user explicitly selects through the iOS Share Sheet. It does not read historical iMessage conversations.
 
-## Prototype boundaries
+## Validation
 
-- No live Gmail or Microsoft OAuth is enabled yet.
-- No unrestricted native iMessage or carrier call-history access is claimed.
-- Money movement is simulated and requires a production payment provider before real transfers.
-- Files and preferences persist locally in the browser preview.
+The validated M26 branch passes:
+
+- six-migration ordering checks
+- npm dependency installation on Node 22
+- TypeScript typecheck
+- ESLint
+- Next.js production build
+- provisioning-script syntax validation
+
+See `M26_VALIDATION.md`.
+
+## Remaining external requirements
+
+- Supabase account authorization
+- Google OAuth application and testing users
+- Microsoft Entra application and testing users
+- Separate M26 Render service authorization
+- Two-account privacy and sharing acceptance test
+- Apple/Xcode project creation, signing, App Group, and Keychain setup
+- Google verification before broad Gmail production access, where required
