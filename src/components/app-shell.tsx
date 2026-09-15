@@ -12,6 +12,7 @@ const desktopNav = [
   { href: "/app/calendar", icon: "◷", label: "Calendar" },
   { href: "/app/people", icon: "◎", label: "People" },
   { href: "/app/files", icon: "▣", label: "Files" },
+  { href: "/app/decisions", icon: "✓", label: "Decisions" },
   { href: "/app/us", icon: "♡", label: "Us" },
   { href: "/app/settings/connections", icon: "↔", label: "Accounts" },
   { href: "/app/search", icon: "⌕", label: "Search" }
@@ -21,8 +22,8 @@ const mobileNav = [
   { href: "/app", icon: "⌂", label: "Mission", exact: true },
   { href: "/app/messages", icon: "✉", label: "Comms" },
   { href: "/app/calendar", icon: "◷", label: "Calendar" },
-  { href: "/app/search", icon: "⌕", label: "Search" },
-  { href: "/app/us", icon: "♡", label: "Us" }
+  { href: "/app/decisions", icon: "✓", label: "Decide" },
+  { href: "/app/search", icon: "⌕", label: "Search" }
 ] as const;
 
 type ThemeMode = "system" | "light" | "dark";
@@ -121,6 +122,7 @@ function pageTitle(pathname: string) {
   if (pathname.startsWith("/app/calendar")) return "Calendar";
   if (pathname.includes("/people/")) return "Contact";
   if (pathname.startsWith("/app/people")) return "People";
+  if (pathname.startsWith("/app/decisions")) return "Decision Center";
   if (pathname.startsWith("/app/us")) return "Us";
   if (pathname.startsWith("/app/search")) return "Search";
   if (pathname.startsWith("/app/files")) return "Files";
@@ -129,6 +131,7 @@ function pageTitle(pathname: string) {
 
 function pageContext(pathname: string) {
   if (pathname.startsWith("/app/messages")) return "Outlook · Gmail · Texts";
+  if (pathname.startsWith("/app/decisions")) return "Review before external action";
   if (pathname.startsWith("/app/settings/connections")) return "Provider health and permissions";
   if (pathname.startsWith("/app/search")) return "Private cross-Compass search";
   if (pathname.startsWith("/app/us")) return "Shared workspace";
