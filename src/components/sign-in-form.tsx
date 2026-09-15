@@ -15,7 +15,7 @@ export function SignInForm({ nextPath = "/app", initialMessage = "" }: { nextPat
     setMessage("");
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}` }
+      options: { emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(nextPath)}` }
     });
     setBusy(false);
     setMessage(error ? "Compass could not send the sign-in link. Confirm the address and try again." : "Check your email for the secure sign-in link.");
