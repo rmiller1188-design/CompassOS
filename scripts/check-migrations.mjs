@@ -8,7 +8,8 @@ const expected = [
   "003_m26_rls_storage.sql",
   "004_m26_security_hardening.sql",
   "005_m26_atomic_workspace_operations.sql",
-  "006_m26_sync_leases.sql"
+  "006_m26_sync_leases.sql",
+  "007_m26_projects.sql"
 ];
 
 const actual = fs.existsSync(directory)

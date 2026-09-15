@@ -10,6 +10,7 @@ const desktopNav = [
   { href: "/app", icon: "⌂", label: "Mission Control", exact: true },
   { href: "/app/messages", icon: "✉", label: "Communications" },
   { href: "/app/calendar", icon: "◷", label: "Calendar" },
+  { href: "/app/projects", icon: "◆", label: "Projects" },
   { href: "/app/people", icon: "◎", label: "People" },
   { href: "/app/files", icon: "▣", label: "Files" },
   { href: "/app/decisions", icon: "✓", label: "Decisions" },
@@ -22,7 +23,7 @@ const mobileNav = [
   { href: "/app", icon: "⌂", label: "Mission", exact: true },
   { href: "/app/messages", icon: "✉", label: "Comms" },
   { href: "/app/calendar", icon: "◷", label: "Calendar" },
-  { href: "/app/decisions", icon: "✓", label: "Decide" },
+  { href: "/app/projects", icon: "◆", label: "Projects" },
   { href: "/app/search", icon: "⌕", label: "Search" }
 ] as const;
 
@@ -120,6 +121,7 @@ function pageTitle(pathname: string) {
   if (pathname.startsWith("/app/settings")) return "Settings";
   if (pathname.startsWith("/app/messages")) return "Communications";
   if (pathname.startsWith("/app/calendar")) return "Calendar";
+  if (pathname.startsWith("/app/projects")) return "Projects";
   if (pathname.includes("/people/")) return "Contact";
   if (pathname.startsWith("/app/people")) return "People";
   if (pathname.startsWith("/app/decisions")) return "Decision Center";
@@ -131,6 +133,7 @@ function pageTitle(pathname: string) {
 
 function pageContext(pathname: string) {
   if (pathname.startsWith("/app/messages")) return "Outlook · Gmail · Texts";
+  if (pathname.startsWith("/app/projects")) return "Bids · delivery · project register";
   if (pathname.startsWith("/app/decisions")) return "Review before external action";
   if (pathname.startsWith("/app/settings/connections")) return "Provider health and permissions";
   if (pathname.startsWith("/app/search")) return "Private cross-Compass search";
