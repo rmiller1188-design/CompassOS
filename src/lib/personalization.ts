@@ -1,13 +1,13 @@
 export type ThemeMode = "system" | "light" | "dark";
-export type Accent = "violet" | "blue" | "green" | "orange" | "rose" | "graphite" | "cyan" | "red" | "gold";
+export type Accent = "violet" | "blue" | "green" | "orange" | "rose" | "graphite" | "cyan" | "red" | "gold" | "indigo" | "lavender" | "mint" | "teal" | "brown";
 export type Density = "compact" | "comfortable" | "spacious";
 export type Radius = "square" | "soft" | "round" | "pill";
-export type Surface = "solid" | "glass" | "paper" | "midnight";
+export type Surface = "solid" | "glass" | "paper" | "midnight" | "frosted" | "tinted";
 export type Motion = "full" | "reduced" | "none";
 export type Scale = "small" | "normal" | "large";
 export type NavMode = "expanded" | "compact" | "icons";
 export type Chrome = "minimal" | "balanced" | "expressive";
-export type Background = "calm" | "gradient" | "graphite" | "warm" | "ocean";
+export type Background = "calm" | "gradient" | "graphite" | "warm" | "ocean" | "lavender" | "mint" | "cream" | "dusk" | "black";
 export type CardSize = "auto" | "compact" | "wide" | "full";
 export type WorkspaceWidth = "focused" | "standard" | "wide" | "fluid";
 export type Spacing = "tight" | "standard" | "airy";
@@ -17,7 +17,7 @@ export type AppearanceProfile = { mode:ThemeMode; accent:Accent; density:Density
 export type LayoutRule = { order?:number; size?:CardSize; hidden?:boolean };
 export type LayoutSettings = Record<string,Record<string,LayoutRule>>;
 export const defaultAppearance:AppearanceProfile={mode:"system",accent:"violet",density:"comfortable",radius:"round",surface:"glass",motion:"full",scale:"normal",navMode:"expanded",chrome:"balanced",background:"calm",workspaceWidth:"standard",spacing:"standard",elevation:"soft",headerMode:"sticky",reducedTransparency:false,showHelperText:true,showTimestamps:true};
-const allowed={mode:new Set(["system","light","dark"]),accent:new Set(["violet","blue","green","orange","rose","graphite","cyan","red","gold"]),density:new Set(["compact","comfortable","spacious"]),radius:new Set(["square","soft","round","pill"]),surface:new Set(["solid","glass","paper","midnight"]),motion:new Set(["full","reduced","none"]),scale:new Set(["small","normal","large"]),navMode:new Set(["expanded","compact","icons"]),chrome:new Set(["minimal","balanced","expressive"]),background:new Set(["calm","gradient","graphite","warm","ocean"]),workspaceWidth:new Set(["focused","standard","wide","fluid"]),spacing:new Set(["tight","standard","airy"]),elevation:new Set(["flat","soft","raised"]),headerMode:new Set(["sticky","static","hidden"]),size:new Set(["auto","compact","wide","full"])};
+const allowed={mode:new Set(["system","light","dark"]),accent:new Set(["violet","blue","green","orange","rose","graphite","cyan","red","gold","indigo","lavender","mint","teal","brown"]),density:new Set(["compact","comfortable","spacious"]),radius:new Set(["square","soft","round","pill"]),surface:new Set(["solid","glass","paper","midnight","frosted","tinted"]),motion:new Set(["full","reduced","none"]),scale:new Set(["small","normal","large"]),navMode:new Set(["expanded","compact","icons"]),chrome:new Set(["minimal","balanced","expressive"]),background:new Set(["calm","gradient","graphite","warm","ocean","lavender","mint","cream","dusk","black"]),workspaceWidth:new Set(["focused","standard","wide","fluid"]),spacing:new Set(["tight","standard","airy"]),elevation:new Set(["flat","soft","raised"]),headerMode:new Set(["sticky","static","hidden"]),size:new Set(["auto","compact","wide","full"])};
 function record(v:unknown):Record<string,unknown>{return v&&typeof v==="object"&&!Array.isArray(v)?v as Record<string,unknown>:{};}
 function enumValue<T extends string>(v:unknown,s:Set<string>,f:T):T{return typeof v==="string"&&s.has(v)?v as T:f;}
 function boolValue(v:unknown,f:boolean){return typeof v==="boolean"?v:f;}
