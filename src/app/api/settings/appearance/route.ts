@@ -2,16 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireApiUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeAppearance, settingsRecord } from "@/lib/personalization";
 
 const inputSchema = z.object({
   mode: z.enum(["system", "light", "dark"]),
-  accent: z.enum(["violet", "blue", "green", "orange", "rose", "graphite"])
+  accent: z.enum(["violet", "blue", "green", "orange", "rose", "graphite", "cyan", "red", "gold"]),
+  density: z.enum(["compact", "comfortable", "spacious"]).default("comfortable"),
+  radius: z.enum(["square", "soft", "round", "pill"]).default("round"),
+  surface: z.enum(["solid", "glass", "paper", "midnight"]).default("glass"),
+  motion: z.enum(["full", "reduced", "none"]).default("full"),
+  scale: z.enum(["small", "normal", "large"]).default("normal"),
+  navMode: z.enum(["expanded", "compact", "icons"]).default("expanded"),
+  chrome: z.enum(["minimal", "balanced", "expressive"]).default("balanced"),
+  background: z.enum(["calm", "gradient", "graphite", "warm", "ocean"]).default("calm")
 });
 
 export async function PUT(request: NextRequest) {
   try {
     const user = await requireApiUser();
-    const appearance = inputSchema.parse(await request.json());
+    const appearance = normalizeAppearance(inputSchema.parse(await request.json()));
     const admin = createAdminClient();
     const { data: profile, error: profileError } = await admin
       .from("profiles")
@@ -20,14 +29,9 @@ export async function PUT(request: NextRequest) {
       .eq("kind", "personal")
       .single();
 
-    if (profileError || !profile) {
-      return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
-    }
+    if (profileError || !profile) return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
 
-    const current = profile.settings && typeof profile.settings === "object" && !Array.isArray(profile.settings)
-      ? profile.settings as Record<string, unknown>
-      : {};
-    const settings = { ...current, appearance };
+    const settings = { ...settingsRecord(profile.settings), appearance };
     const update = await admin.from("profiles")
       .update({ settings, updated_at: new Date().toISOString() })
       .eq("id", profile.id)
