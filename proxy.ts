@@ -9,15 +9,20 @@ export async function proxy(request: NextRequest) {
 
   const supabase = createServerClient(url, key, {
     cookies: {
-      getAll() { return request.cookies.getAll(); },
-      setAll(items) {
-        for (const item of items) request.cookies.set(item.name, item.value);
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet, headers) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        for (const item of items) response.cookies.set(item.name, item.value, item.options);
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        Object.entries(headers).forEach(([name, value]) => response.headers.set(name, value));
       }
     }
   });
-  await supabase.auth.getUser();
+
+  // Keep the cookie-backed SSR session current before Server Components run.
+  await supabase.auth.getClaims();
   return response;
 }
 
