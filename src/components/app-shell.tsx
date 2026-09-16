@@ -11,6 +11,7 @@ import type { AppearanceProfile, LayoutSettings } from "@/lib/personalization";
 const desktopNav = [
   { href: "/app", icon: "⌂", label: "Home", exact: true },
   { href: "/app/messages", icon: "✉", label: "Messages" },
+  { href: "/app/phone", icon: "☎", label: "Phone" },
   { href: "/app/calendar", icon: "◷", label: "Calendar" },
   { href: "/app/people", icon: "◎", label: "People" },
   { href: "/app/photos", icon: "▧", label: "Photos" },
@@ -22,9 +23,9 @@ const desktopNav = [
 const mobileNav = [
   { href: "/app", icon: "⌂", label: "Home", exact: true },
   { href: "/app/messages", icon: "✉", label: "Messages" },
+  { href: "/app/phone", icon: "☎", label: "Phone" },
   { href: "/app/photos", icon: "▧", label: "Photos" },
-  { href: "/app/us", icon: "♡", label: "Us" },
-  { href: "/app/search", icon: "⌕", label: "Search" }
+  { href: "/app/us", icon: "♡", label: "Us" }
 ] as const;
 
 type NavigationItem = { href: string; icon: string; label: string; exact?: boolean };
@@ -51,6 +52,7 @@ export function AppShell({ children, displayName, initialAppearance }: { childre
 function pageTitle(pathname:string){
   if(pathname.startsWith("/app/settings")) return "Settings";
   if(pathname.startsWith("/app/messages")) return "Messages";
+  if(pathname.startsWith("/app/phone")) return "Phone";
   if(pathname.startsWith("/app/calendar")) return "Calendar";
   if(pathname.startsWith("/app/people")) return "People";
   if(pathname.startsWith("/app/photos")) return "Photos";
