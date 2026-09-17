@@ -1,0 +1,43 @@
+.controlCenter{display:block}
+.controlCenter :global(.accounts-control-center){gap:12px}
+.controlCenter :global(.accounts-hero){display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.controlCenter :global(.accounts-hero>div:first-child){max-width:720px}
+.controlCenter :global(.account-overview-grid){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.controlCenter :global(.account-overview-card){display:grid;gap:3px;min-height:120px;align-content:center}
+.controlCenter :global(.account-overview-card small){font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:800}
+.controlCenter :global(.account-overview-card b){font-size:34px;line-height:1;letter-spacing:-.05em;margin:3px 0}
+.controlCenter :global(.account-overview-card span){font-size:8px;color:var(--muted)}
+.controlCenter :global(.account-overview-card.good b){color:var(--good)}
+.controlCenter :global(.account-overview-card.bad b){color:var(--bad)}
+.controlCenter :global(.provider-control-grid){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.controlCenter :global(.provider-control-card){display:grid;gap:12px;min-height:240px}
+.controlCenter :global(.provider-control-card.microsoft){background:linear-gradient(150deg,rgba(0,120,212,.055),rgba(255,255,255,.96) 46%)}
+.controlCenter :global(.provider-control-card.google){background:linear-gradient(150deg,rgba(66,133,244,.055),rgba(255,255,255,.96) 46%)}
+.controlCenter :global(.provider-control-heading){display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:10px;align-items:center}
+.controlCenter :global(.provider-control-heading h2){margin:0;font-size:17px}
+.controlCenter :global(.provider-control-heading small){display:block;color:var(--muted);font-size:8px;margin-top:2px}
+.controlCenter :global(.provider-control-heading .eyebrow){margin-bottom:2px}
+.controlCenter :global(.provider-account-list){display:grid;gap:7px}
+.controlCenter :global(.provider-account-row){display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.68)}
+.controlCenter :global(.provider-account-row b){display:block;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.controlCenter :global(.provider-account-row small){display:block;font-size:8px;color:var(--muted);margin-top:2px}
+.controlCenter :global(.provider-empty){min-height:95px;border:1px dashed var(--line);border-radius:14px;display:grid;place-items:center;align-content:center;text-align:center;padding:12px}
+.controlCenter :global(.provider-empty b){font-size:10px}
+.controlCenter :global(.provider-empty span){font-size:8px;color:var(--muted);margin-top:3px}
+.controlCenter :global(.provider-view-all){justify-self:start}
+.controlCenter :global(.permissions-section){padding-bottom:20px}
+
+@media(max-width:900px){
+  .controlCenter :global(.provider-control-grid){grid-template-columns:1fr}
+}
+
+@media(max-width:720px){
+  .controlCenter :global(.accounts-hero){display:grid}
+  .controlCenter :global(.account-overview-grid){grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .controlCenter :global(.account-overview-card){min-height:96px;padding:12px}
+  .controlCenter :global(.account-overview-card b){font-size:26px}
+  .controlCenter :global(.provider-control-heading){grid-template-columns:40px minmax(0,1fr)}
+  .controlCenter :global(.provider-control-heading>.status){grid-column:2;justify-self:start}
+  .controlCenter :global(.provider-account-row){grid-template-columns:minmax(0,1fr) auto}
+  .controlCenter :global(.provider-account-row .button){grid-column:1/3}
+}
